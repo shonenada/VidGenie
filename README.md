@@ -1,2 +1,4 @@
 # VidGenie
-Video
+
+Video Generator
+
