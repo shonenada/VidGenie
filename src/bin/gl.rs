@@ -2,14 +2,16 @@ extern crate gstreamer as gst;
 
 use std::ffi::CString;
 use std::ptr;
+use std::mem::size_of;
 use anyhow::anyhow;
 use gst::prelude::*;
 use glfw::Context;
 use derive_more::Display;
+use image::imageops::index_colors;
 use thiserror::Error;
 
-const WIDTH: u32 = 800;
-const HEIGHT: u32 = 600;
+const WIDTH: u32 = 1920;
+const HEIGHT: u32 = 1080;
 const TITLE: &str = "VidGenie";
 
 const VS_SRC: &str = r#"
@@ -119,7 +121,71 @@ fn main() {
     let program = create_program(vs_shader, fs_shader)
         .expect("Failed to link program");
 
-    while !window.should_close() {
+    unsafe {
+        gl::DeleteShader(vs_shader);
+        gl::DeleteShader(fs_shader);
+    }
 
+    let vertices = vec![
+        0.5, 0.5, 0.0,
+        0.5, -0.5, 0.0,
+        -0.5, -0.5, 0.0,
+        -0.5, 0.5, 0.0,
+    ];
+
+    let indices = vec![
+        0, 1, 3,
+        1, 2, 3,
+    ];
+
+    let mut VAO: gl::types::GLuint = 0;
+    let mut VBO: gl::types::GLuint = 0;
+    let mut EBO: gl::types::GLuint = 0;
+
+    unsafe {
+        gl::GenVertexArrays(1, &mut VAO);
+        gl::GenBuffers(1, &mut VBO);
+        gl::GenBuffers(1, &mut EBO);
+        gl::BindVertexArray(VAO);
+        gl::BindBuffer(gl::ARRAY_BUFFER_BINDING, VBO);
+        gl::BufferData(
+        gl::ARRAY_BUFFER,
+        vertices.len() as gl::types::GLsizeiptr,
+        vertices.as_ptr() as *const _,
+        gl::STATIC_DRAW
+        );
+
+        gl::BindBuffer(gl::ELEMENT_ARRAY_BUFFER, EBO);
+        gl::BufferData(
+        gl::ELEMENT_ARRAY_BUFFER,
+        indices.len() as gl::types::GLsizeiptr,
+        indices.as_ptr() as *const _,
+        gl::STATIC_DRAW
+        );
+
+        gl::VertexAttribPointer(
+            0,
+            3,
+            gl::FLOAT,
+            gl::FALSE,
+            3 * size_of::<f64>() as gl::types::GLint,
+            0 as *const _);
+        gl::EnableVertexAttribArray(0);
+        gl::BindBuffer(gl::ARRAY_BUFFER, 0);
+        gl::BindVertexArray(0);
+    }
+
+    while !window.should_close() {
+        unsafe {
+            gl::ClearColor(0.2, 0.3, 0.3, 1.0);
+            gl::Clear(gl::COLOR_BUFFER_BIT);
+            gl::UseProgram(program);
+            gl::BindVertexArray(VAO);
+            gl::DrawArrays(gl::TRIANGLES, 0, 3);
+        }
+
+
+        window.swap_buffers();
+        glfw.poll_events();
     }
 }
