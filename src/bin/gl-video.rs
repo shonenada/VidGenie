@@ -6,17 +6,14 @@ extern crate gstreamer_video as gst_video;
 mod common;
 
 use std::ffi::CString;
-use std::mem::size_of;
 use std::{ptr, thread, time};
 use std::time::Instant;
 use std::sync::mpsc::{channel, Receiver};
 
 use anyhow::{anyhow, Result};
-use gst::prelude::*;
 use derive_more::Display;
 use glutin::dpi::LogicalSize;
-use glutin::event::{Event, KeyboardInput, VirtualKeyCode};
-use glutin::event_loop::{ControlFlow, EventLoop};
+use glutin::event_loop::EventLoop;
 use glutin::window::WindowBuilder;
 use glutin::ContextBuilder;
 use gst::prelude::*;
@@ -24,12 +21,13 @@ use thiserror::Error;
 
 const WIDTH: u32 = 1280;
 const HEIGHT: u32 = 720;
+const FPS: u32 = 60;
 
 const VS_SRC: &str = r#"
 #version 330 core
-layout (location = 0) in vec3 aPos;
+layout (location = 0) in vec3 position;
 void main() {
-    gl_Position = vec4(aPos, 1.0);
+    gl_Position = vec4(position, 1.0);
 }"#;
 
 const FS_SRC: &str = r#"
@@ -101,20 +99,20 @@ impl Video {
         self.appsrc.set_callbacks(
             gst_app::AppSrcCallbacks::builder()
                 .need_data(move |appsrc, _| {
-                     if frame_num == 10 {
+                    if let Ok(pixels) = rx.recv() {
+                        let mut buffer = gst::Buffer::with_size(pixels.len()).unwrap();
+                        {
+                            let buffer = buffer.get_mut().unwrap();
+                            let fps = (1000 / FPS) as u64;
+                            buffer.set_pts(frame_num * fps * gst::ClockTime::MSECOND);
+                            buffer.copy_from_slice(0, &pixels[..]).unwrap();
+                        }
+                        println!("Producing frame {}", frame_num);
+                        frame_num += 1;
+                        appsrc.push_buffer(buffer).unwrap();
+                    } else {
                         appsrc.end_of_stream().unwrap();
-                        return;
                     }
-                    let pixels = rx.recv().unwrap();
-                    let mut buffer = gst::Buffer::with_size(pixels.len()).unwrap();
-                    {
-                        let buffer = buffer.get_mut().unwrap();
-                        buffer.set_pts(frame_num * 100 * gst::ClockTime::MSECOND);
-                        buffer.copy_from_slice(0, &pixels[..]).unwrap();
-                    }
-                    println!("Producing frame {}", frame_num);
-                    frame_num += 1;
-                    appsrc.push_buffer(buffer).unwrap();
                 })
                 .build()
         );
@@ -279,15 +277,17 @@ impl RenderProgram {
                 vertices.as_ptr() as *const _,
                 gl::STATIC_DRAW,
             );
+
+            let pos_attr = gl::GetAttribLocation(self.program_id, "position\0".as_ptr() as *const _) as gl::types::GLuint;
             gl::VertexAttribPointer(
-                0,
+                pos_attr,
                 3,
                 gl::FLOAT,
                 gl::FALSE,
                 3 * std::mem::size_of::<gl::types::GLfloat>() as gl::types::GLint,
                 ptr::null(),
             );
-            gl::EnableVertexAttribArray(0);
+            gl::EnableVertexAttribArray(pos_attr);
             gl::BindBuffer(gl::ARRAY_BUFFER, 0);
             gl::BindVertexArray(0);
         }
@@ -304,9 +304,9 @@ impl RenderProgram {
             gl::UseProgram(self.program_id);
             gl::ClearColor(0.0, 0.0, 0.0, 1.0);
             gl::Clear(gl::COLOR_BUFFER_BIT);
-            gl::Uniform4f(gl::GetUniformLocation(self.program_id, b"outColor\0".as_ptr() as *const _), 1.0, color, 1.0, 1.0);
+            gl::Uniform4f(gl::GetUniformLocation(self.program_id, b"outColor\0".as_ptr() as *const _), (color + 0.1) / 1.0, color, (color + 0.3) % 1.0, 1.0);
             gl::BindVertexArray(self.vao);
-            gl::DrawArrays(gl::TRIANGLES, 0, 3);
+            gl::DrawArrays(gl::TRIANGLES, 0, 3); // FIXME
         }
 
         let mut pixels = vec![0u8; (WIDTH * HEIGHT * 3) as usize];
@@ -328,7 +328,7 @@ impl RenderProgram {
 
 fn go(rx: Receiver<Vec<u8>>) -> Result<()> {
     gst::init()?;
-    let mut video = Video::new(WIDTH, HEIGHT, gst::Fraction::new(5, 1))?;
+    let mut video = Video::new(WIDTH, HEIGHT, gst::Fraction::new(FPS as i32, 1))?;
     video.setup_pipeline("gl_output.mp4")?;
     video.setup_appsrc(rx)?;
     video.start()?;
@@ -339,7 +339,7 @@ fn go(rx: Receiver<Vec<u8>>) -> Result<()> {
 
 fn _main() -> Result<()> {
     let (tx, rx) = channel();
-    thread::spawn(move || {
+    let t = thread::spawn(move || {
         go(rx).unwrap();
     });
 
@@ -356,8 +356,11 @@ fn _main() -> Result<()> {
 
     let start = Instant::now();
 
-    let duration = time::Duration::from_millis(100);
-    for i in 0..10 {
+    let frames = FPS * 10; // 10s
+    println!("Total frames: {}", frames);
+
+    let duration = time::Duration::from_millis((1000 / FPS) as u64);
+    for i in 0..frames {
         let tx1 = tx.clone();
         let pixels = program.draw(&start).unwrap();
         // println!("{:?} / {}", pixels, pixels.len());
@@ -365,6 +368,9 @@ fn _main() -> Result<()> {
         thread::sleep(duration);
         println!("Sent {}", i);
     }
+    drop(tx);
+
+    t.join().expect("Failed to join thread");
 
     Ok(())
 }
