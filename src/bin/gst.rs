@@ -2,6 +2,7 @@ extern crate gstreamer as gst;
 extern crate gstreamer_app as gst_app;
 extern crate gstreamer_video as gst_video;
 
+#[path = "../common.rs"]
 mod common;
 
 use gst::prelude::*;
@@ -19,14 +20,14 @@ fn _main() {
             .fps(gst::Fraction::new(5, 1))
             .build()
             .expect("Failed to create video info");
-
-    let appsrc = gst_app::AppSrc::builder()
-        .caps(
-            &gst::Caps::builder("video/x-raw")
+    let caps = gst::Caps::builder("video/x-raw")
                 .field("format", &gst_video::VideoFormat::Rgba.to_string())
                 .field("width", &WIDTH)
                 .field("height", &HEIGHT)
-                .field("framerate", &gst::Fraction::new(2, 1)).build())
+                .field("framerate", &gst::Fraction::new(2, 1)).build();
+
+    let appsrc = gst_app::AppSrc::builder()
+        .caps(&caps)
         .format(gst::Format::Time)
         .build();
 
@@ -65,9 +66,9 @@ fn _main() {
     let mut frame_num = 0;
     appsrc.set_callbacks(
         gst_app::AppSrcCallbacks::builder()
-            .need_data(move |appsrc, _| {
+            .need_data(move |src, _| {
                 if frame_num == 10 {
-                    appsrc.end_of_stream().unwrap();
+                    src.end_of_stream().unwrap();
                     return;
                 }
 
@@ -109,7 +110,7 @@ fn _main() {
 
                 frame_num += 1;
 
-                appsrc.push_buffer(buffer).unwrap();
+                src.push_buffer(buffer).unwrap();
                 return;
             })
             .build()

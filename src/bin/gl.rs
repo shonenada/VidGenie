@@ -3,10 +3,18 @@ extern crate gstreamer as gst;
 use std::ffi::CString;
 use std::ptr;
 use std::mem::size_of;
+use std::time::Instant;
+
 use anyhow::anyhow;
+use glutin::event::{Event, KeyboardInput, VirtualKeyCode};
+use glutin::event_loop::{ControlFlow, EventLoop};
+use glutin::window::WindowBuilder;
+use glutin::ContextBuilder;
 use gst::prelude::*;
-use glfw::Context;
 use derive_more::Display;
+use glutin::dpi::LogicalSize;
+use gstreamer_gl::gst_video;
+use gstreamer_video::ffi::gst_video_affine_transformation_meta_api_get_type;
 use image::imageops::index_colors;
 use thiserror::Error;
 
@@ -100,18 +108,29 @@ fn create_program(vertex_shader: gl::types::GLuint, fragment_shader: gl::types::
     }
 }
 
+const GST_GSTREAMER_PER_OUTPUT: usize = 30;
+const GST_BUFFER_SIZE: usize = 1024;
+
 fn main() {
     gst::init().unwrap();
 
-    let mut glfw = glfw::init(glfw::FAIL_ON_ERRORS).unwrap();
-    glfw.window_hint(glfw::WindowHint::Resizable(false));
-    let (mut window, events) = glfw.create_window(
-        WIDTH, HEIGHT,
-        TITLE, glfw::WindowMode::Windowed)
-        .expect("Failed to create GLFW window");
-    window.set_key_polling(true);
-    window.make_current();
-    gl::load_with(|symbol| window.get_proc_address(symbol) as *const _);
+    let event_loop = EventLoop::new();
+    let wb = WindowBuilder::new()
+        .with_title("VidGenie")
+        .with_inner_size(LogicalSize::new(WIDTH, HEIGHT));
+    let cb = ContextBuilder::new().with_vsync(true);
+    let context = cb.build_windowed(wb, &event_loop)
+        .unwrap();
+    let context = unsafe {
+        context.make_current().unwrap()
+    };
+
+    gl::load_with(|s| context.get_proc_address(s) as *const _);
+
+    unsafe {
+        gl::ClearColor(0.2, 0.3, 0.3, 1.0);
+        gl::Viewport(0, 0, WIDTH as gl::types::GLsizei, HEIGHT as gl::types::GLsizei);
+    }
 
     let vs_shader = create_shader(gl::VERTEX_SHADER, CString::new(VS_SRC).unwrap())
         .expect("Failed to create vertex shader");
@@ -150,7 +169,7 @@ fn main() {
         gl::BindBuffer(gl::ARRAY_BUFFER_BINDING, VBO);
         gl::BufferData(
         gl::ARRAY_BUFFER,
-        vertices.len() as gl::types::GLsizeiptr,
+        (vertices.len() * std::mem::size_of::<gl::types::GLfloat>()) as gl::types::GLsizeiptr,
         vertices.as_ptr() as *const _,
         gl::STATIC_DRAW
         );
@@ -158,7 +177,7 @@ fn main() {
         gl::BindBuffer(gl::ELEMENT_ARRAY_BUFFER, EBO);
         gl::BufferData(
         gl::ELEMENT_ARRAY_BUFFER,
-        indices.len() as gl::types::GLsizeiptr,
+        (indices.len() * std::mem::size_of::<gl::types::GLfloat>()) as gl::types::GLsizeiptr,
         indices.as_ptr() as *const _,
         gl::STATIC_DRAW
         );
@@ -168,13 +187,34 @@ fn main() {
             3,
             gl::FLOAT,
             gl::FALSE,
-            3 * size_of::<f64>() as gl::types::GLint,
-            0 as *const _);
+            3 * std::mem::size_of::<gl::types::GLfloat>() as gl::types::GLint,
+            ptr::null());
         gl::EnableVertexAttribArray(0);
         gl::BindBuffer(gl::ARRAY_BUFFER, 0);
         gl::BindVertexArray(0);
     }
 
+    let mut last_time = Instant::now();
+    let mut frames_renderder = 0;
+    loop {
+        let time = Instant::now();
+        let delta = time.duration_since(last_time).as_secs_f32();
+        last_time = time;
+
+        // Clear screen
+        unsafe {
+            gl::Clear(gl::COLOR_BUFFER_BIT);
+        }
+
+        unsafe {
+            gl::UseProgram(program);
+            gl::BindVertexArray(VAO);
+            gl::DrawArrays(gl::TRIANGLES, 0, 3);
+        }
+        context.swap_buffers();
+    }
+
+    /*
     while !window.should_close() {
         unsafe {
             gl::ClearColor(0.2, 0.3, 0.3, 1.0);
@@ -184,8 +224,8 @@ fn main() {
             gl::DrawArrays(gl::TRIANGLES, 0, 3);
         }
 
-
         window.swap_buffers();
         glfw.poll_events();
     }
+     */
 }
