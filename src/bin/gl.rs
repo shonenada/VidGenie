@@ -1,20 +1,15 @@
-extern crate gstreamer as gst;
-
 use std::ffi::CString;
-use std::ptr;
 use std::mem::size_of;
+use std::ptr;
 use std::time::Instant;
 
 use anyhow::anyhow;
+use derive_more::Display;
+use glutin::dpi::LogicalSize;
 use glutin::event::{Event, KeyboardInput, VirtualKeyCode};
 use glutin::event_loop::{ControlFlow, EventLoop};
 use glutin::window::WindowBuilder;
 use glutin::ContextBuilder;
-use gst::prelude::*;
-use derive_more::Display;
-use glutin::dpi::LogicalSize;
-use gstreamer_gl::gst_video;
-use gstreamer_video::ffi::gst_video_affine_transformation_meta_api_get_type;
 use image::imageops::index_colors;
 use thiserror::Error;
 
@@ -32,8 +27,9 @@ void main() {
 const FS_SRC: &str = r#"
 #version 330 core
 out vec4 fragColor;
+uniform vec4 outColor;
 void main() {
-    fragColor = vec4(1.0f, 1.0f, 0.2f, 1.0f);
+    fragColor = outColor;
 }"#;
 
 #[derive(Display, Debug, Error)]
@@ -41,7 +37,10 @@ enum ShaderError {
     CompileError(String),
 }
 
-fn create_shader(shader_type: gl::types::GLenum, src: CString) -> anyhow::Result<gl::types::GLuint> {
+fn create_shader(
+    shader_type: gl::types::GLenum,
+    src: CString,
+) -> anyhow::Result<gl::types::GLuint> {
     unsafe {
         let shader_id = gl::CreateShader(shader_type);
         gl::ShaderSource(shader_id, 1, &src.as_ptr(), ptr::null());
@@ -77,7 +76,10 @@ enum ProgramError {
     LinkError(String),
 }
 
-fn create_program(vertex_shader: gl::types::GLuint, fragment_shader: gl::types::GLuint) -> anyhow::Result<gl::types::GLuint> {
+fn create_program(
+    vertex_shader: gl::types::GLuint,
+    fragment_shader: gl::types::GLuint,
+) -> anyhow::Result<gl::types::GLuint> {
     unsafe {
         let program_id = gl::CreateProgram();
         gl::AttachShader(program_id, vertex_shader);
@@ -112,24 +114,24 @@ const GST_GSTREAMER_PER_OUTPUT: usize = 30;
 const GST_BUFFER_SIZE: usize = 1024;
 
 fn main() {
-    gst::init().unwrap();
-
     let event_loop = EventLoop::new();
     let wb = WindowBuilder::new()
         .with_title("VidGenie")
         .with_inner_size(LogicalSize::new(WIDTH, HEIGHT));
     let cb = ContextBuilder::new().with_vsync(true);
-    let context = cb.build_windowed(wb, &event_loop)
-        .unwrap();
-    let context = unsafe {
-        context.make_current().unwrap()
-    };
+    let context = cb.build_windowed(wb, &event_loop).unwrap();
+    let context = unsafe { context.make_current().unwrap() };
 
     gl::load_with(|s| context.get_proc_address(s) as *const _);
 
     unsafe {
-        gl::ClearColor(0.2, 0.3, 0.3, 1.0);
-        gl::Viewport(0, 0, WIDTH as gl::types::GLsizei, HEIGHT as gl::types::GLsizei);
+        gl::ClearColor(0.0, 0.0, 0.0, 1.0);
+        gl::Viewport(
+            0,
+            0,
+            WIDTH as gl::types::GLsizei,
+            HEIGHT as gl::types::GLsizei,
+        );
     }
 
     let vs_shader = create_shader(gl::VERTEX_SHADER, CString::new(VS_SRC).unwrap())
@@ -137,8 +139,7 @@ fn main() {
     let fs_shader = create_shader(gl::FRAGMENT_SHADER, CString::new(FS_SRC).unwrap())
         .expect("Failed to create fragment shader");
 
-    let program = create_program(vs_shader, fs_shader)
-        .expect("Failed to link program");
+    let program = create_program(vs_shader, fs_shader).expect("Failed to link program");
 
     unsafe {
         gl::DeleteShader(vs_shader);
@@ -152,10 +153,7 @@ fn main() {
         -0.5, 0.5, 0.0,
     ];
 
-    let indices = vec![
-        0, 1, 3,
-        1, 2, 3,
-    ];
+    let indices = vec![0, 1, 3, 1, 2, 3];
 
     let mut VAO: gl::types::GLuint = 0;
     let mut VBO: gl::types::GLuint = 0;
@@ -168,18 +166,18 @@ fn main() {
         gl::BindVertexArray(VAO);
         gl::BindBuffer(gl::ARRAY_BUFFER_BINDING, VBO);
         gl::BufferData(
-        gl::ARRAY_BUFFER,
-        (vertices.len() * std::mem::size_of::<gl::types::GLfloat>()) as gl::types::GLsizeiptr,
-        vertices.as_ptr() as *const _,
-        gl::STATIC_DRAW
+            gl::ARRAY_BUFFER,
+            (vertices.len() * std::mem::size_of::<gl::types::GLfloat>()) as gl::types::GLsizeiptr,
+            vertices.as_ptr() as *const _,
+            gl::STATIC_DRAW,
         );
 
         gl::BindBuffer(gl::ELEMENT_ARRAY_BUFFER, EBO);
         gl::BufferData(
-        gl::ELEMENT_ARRAY_BUFFER,
-        (indices.len() * std::mem::size_of::<gl::types::GLfloat>()) as gl::types::GLsizeiptr,
-        indices.as_ptr() as *const _,
-        gl::STATIC_DRAW
+            gl::ELEMENT_ARRAY_BUFFER,
+            (indices.len() * std::mem::size_of::<gl::types::GLfloat>()) as gl::types::GLsizeiptr,
+            indices.as_ptr() as *const _,
+            gl::STATIC_DRAW,
         );
 
         gl::VertexAttribPointer(
@@ -188,26 +186,30 @@ fn main() {
             gl::FLOAT,
             gl::FALSE,
             3 * std::mem::size_of::<gl::types::GLfloat>() as gl::types::GLint,
-            ptr::null());
+            ptr::null(),
+        );
         gl::EnableVertexAttribArray(0);
         gl::BindBuffer(gl::ARRAY_BUFFER, 0);
         gl::BindVertexArray(0);
     }
 
+    let mut start = Instant::now();
     let mut last_time = Instant::now();
-    let mut frames_renderder = 0;
     loop {
         let time = Instant::now();
         let delta = time.duration_since(last_time).as_secs_f32();
         last_time = time;
 
+        let delta_start = time.duration_since(start).as_secs_f32();
+        let color = delta_start.sin() / 2.0 + 0.5;
+
         // Clear screen
         unsafe {
             gl::Clear(gl::COLOR_BUFFER_BIT);
-        }
 
-        unsafe {
             gl::UseProgram(program);
+
+            gl::Uniform4f(gl::GetUniformLocation(program, b"outColor\0".as_ptr() as *const _), 1.0, color, 1.0, 1.0);
             gl::BindVertexArray(VAO);
             gl::DrawArrays(gl::TRIANGLES, 0, 3);
         }
