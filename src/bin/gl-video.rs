@@ -22,10 +22,8 @@ use glutin::ContextBuilder;
 use gst::prelude::*;
 use thiserror::Error;
 
-// const WIDTH: u32 = 1080;
-// const HEIGHT: u32 = 720;
-const WIDTH: u32 = 160;
-const HEIGHT: u32 = 90;
+const WIDTH: u32 = 1280;
+const HEIGHT: u32 = 720;
 
 const VS_SRC: &str = r#"
 #version 330 core
@@ -45,7 +43,6 @@ void main() {
 
 struct Video {
     appsrc: gst_app::AppSrc,
-    video_info: gst_video::VideoInfo,
     pipeline: gst::Pipeline,
     bus: Option<gst::Bus>,
 }
@@ -53,13 +50,6 @@ struct Video {
 impl Video {
 
     fn new(width: u32, height: u32, fps: gst::Fraction) -> Result<Self> {
-
-        let video_info = gst_video::VideoInfo::builder(
-                gst_video::VideoFormat::Rgb,
-                width as u32,
-                height as u32)
-            .fps(fps)
-            .build()?;
 
         let caps = gst::Caps::builder("video/x-raw")
             .field("format", &gst_video::VideoFormat::Rgb.to_string())
@@ -75,7 +65,6 @@ impl Video {
 
         Ok(Self {
             appsrc,
-            video_info,
             bus: None,
             pipeline: gst::Pipeline::default(),
         })
@@ -109,9 +98,6 @@ impl Video {
 
     fn setup_appsrc(&self, rx: Receiver<Vec<u8>>) -> Result<()> {
         let mut frame_num = 0;
-        let video_info = self.video_info.clone();
-        let start = Instant::now();
-
         self.appsrc.set_callbacks(
             gst_app::AppSrcCallbacks::builder()
                 .need_data(move |appsrc, _| {
@@ -119,56 +105,16 @@ impl Video {
                         appsrc.end_of_stream().unwrap();
                         return;
                     }
-
                     let pixels = rx.recv().unwrap();
-                    // println!("{:?}", pixels);
-
                     let mut buffer = gst::Buffer::with_size(pixels.len()).unwrap();
                     {
                         let buffer = buffer.get_mut().unwrap();
-                        buffer.set_pts(frame_num * 200 * gst::ClockTime::MSECOND);
+                        buffer.set_pts(frame_num * 100 * gst::ClockTime::MSECOND);
                         buffer.copy_from_slice(0, &pixels[..]).unwrap();
                     }
-
                     println!("Producing frame {}", frame_num);
-                    // let r = if frame_num % 2 == 0 { 0 } else { 255 };
-                    // let g = if frame_num % 3 == 0 { 0 } else { 255 };
-                    // let b = if frame_num % 5 == 0 { 0 } else { 255 };
-                    //
-                    // let mut buffer = gst::Buffer::with_size(video_info.size()).unwrap();
-                    // {
-                    //     let buffer = buffer.get_mut().unwrap();
-                    //
-                    //     buffer.set_pts(frame_num * 200 * gst::ClockTime::MSECOND);
-                    //
-                    //     let mut vframe =
-                    //         gst_video::VideoFrameRef::from_buffer_ref_writable(buffer, &video_info)
-                    //             .unwrap();
-                    //
-                    //     let width = vframe.width() as usize;
-                    //     let height = vframe.height() as usize;
-                    //
-                    //     let stride = vframe.plane_stride()[0] as usize;
-                    //
-                    //     for line in vframe
-                    //         .plane_data_mut(0)
-                    //         .unwrap()
-                    //         .chunks_exact_mut(stride)
-                    //         .take(height)
-                    //     {
-                    //         for pixel in line[..(4 * width)].chunks_exact_mut(4) {
-                    //             pixel[0] = r;
-                    //             pixel[1] = g;
-                    //             pixel[2] = b;
-                    //             pixel[3] = 255;
-                    //         }
-                    //     }
-                    // }
-                    //
                     frame_num += 1;
-                    //
                     appsrc.push_buffer(buffer).unwrap();
-
                 })
                 .build()
         );
@@ -306,17 +252,25 @@ impl RenderProgram {
 
     pub fn setup_draw(&mut self) -> Result<()> {
         let vertices = vec![
-            0.5, 0.5, 0.0,
-            0.5, -0.5, 0.0,
             -0.5, -0.5, 0.0,
-            -0.5, 0.5, 0.0,
+            0.5, -0.5, 0.0,
+            0.0, 0.5, 0.0
         ];
 
         let mut vbo: gl::types::GLuint = 0;
 
         unsafe {
-            gl::GenBuffers(1, &mut vbo);
+            gl::UseProgram(self.program_id);
+            gl::Viewport(
+                0,
+                0,
+                WIDTH as gl::types::GLsizei,
+                HEIGHT as gl::types::GLsizei,
+            );
+
             gl::GenVertexArrays(1, &mut self.vao);
+            gl::GenBuffers(1, &mut vbo);
+
             gl::BindVertexArray(self.vao);
             gl::BindBuffer(gl::ARRAY_BUFFER, vbo);
             gl::BufferData(
@@ -325,7 +279,6 @@ impl RenderProgram {
                 vertices.as_ptr() as *const _,
                 gl::STATIC_DRAW,
             );
-
             gl::VertexAttribPointer(
                 0,
                 3,
@@ -335,7 +288,7 @@ impl RenderProgram {
                 ptr::null(),
             );
             gl::EnableVertexAttribArray(0);
-            // gl::BindBuffer(gl::ARRAY_BUFFER, 0);
+            gl::BindBuffer(gl::ARRAY_BUFFER, 0);
             gl::BindVertexArray(0);
         }
 
@@ -348,9 +301,9 @@ impl RenderProgram {
         let color = delta_start.sin() / 2.0 + 0.5;
 
         unsafe {
-            gl::ClearColor(0.1, color, 0.3, 1.0);
-            gl::Clear(gl::COLOR_BUFFER_BIT);
             gl::UseProgram(self.program_id);
+            gl::ClearColor(0.0, 0.0, 0.0, 1.0);
+            gl::Clear(gl::COLOR_BUFFER_BIT);
             gl::Uniform4f(gl::GetUniformLocation(self.program_id, b"outColor\0".as_ptr() as *const _), 1.0, color, 1.0, 1.0);
             gl::BindVertexArray(self.vao);
             gl::DrawArrays(gl::TRIANGLES, 0, 3);
@@ -367,7 +320,6 @@ impl RenderProgram {
                 gl::UNSIGNED_BYTE,
                 pixels.as_mut_ptr() as *mut gl::types::GLvoid,
             );
-            // context.swap_buffers();
         };
 
         Ok(pixels)
@@ -375,7 +327,6 @@ impl RenderProgram {
 }
 
 fn go(rx: Receiver<Vec<u8>>) -> Result<()> {
-    // rx.recv().unwrap();
     gst::init()?;
     let mut video = Video::new(WIDTH, HEIGHT, gst::Fraction::new(5, 1))?;
     video.setup_pipeline("gl_output.mp4")?;
@@ -405,12 +356,13 @@ fn _main() -> Result<()> {
 
     let start = Instant::now();
 
-    let one_sec = time::Duration::from_secs(1);
+    let duration = time::Duration::from_millis(100);
     for i in 0..10 {
         let tx1 = tx.clone();
         let pixels = program.draw(&start).unwrap();
+        // println!("{:?} / {}", pixels, pixels.len());
         tx1.send(pixels).unwrap();
-        thread::sleep(one_sec);
+        thread::sleep(duration);
         println!("Sent {}", i);
     }
 
