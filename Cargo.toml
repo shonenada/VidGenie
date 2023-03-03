@@ -2,6 +2,7 @@
 name = "vidgenie"
 version = "0.1.0"
 edition = "2021"
+default-run = "vidgenie"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 [dependencies]
@@ -27,3 +28,4 @@ thiserror = "1.0.38"
 
 [build-dependencies]
 gl_generator = { version = "0.14" }
+
