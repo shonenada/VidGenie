@@ -1,0 +1,13 @@
+[package]
+name = "cli"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+default-run = "vidgenie"
+
+[[bin]]
+name = "vidgenie"
+path = "src/bin/vidgenie.rs"
+
+[dependencies]
+clap = { version = "3.1", features = ["derive"] }
