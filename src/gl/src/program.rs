@@ -1,3 +1,5 @@
+use std::ffi::CString;
+
 use anyhow::{anyhow, Result};
 use gl::types::{GLuint, GLint};
 
@@ -49,6 +51,15 @@ impl Program {
         unsafe {
             gl::UseProgram(self.id);
         }
+    }
+
+    pub fn get_attrib_location(&self, attr: &str) -> Result<GLuint> {
+        let attrib = CString::new(attr);
+        let location = unsafe {
+            gl::GetAttribLocation(self.id, attrib.as_ptr()) as GLuint
+        };
+
+        Ok(location)
     }
 }
 
