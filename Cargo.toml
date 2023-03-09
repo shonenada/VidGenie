@@ -6,7 +6,8 @@ default-run = "vidgenie"
 
 [workspace]
 members = [
-    "src/cli"
+    "src/common",
+    "src/cli",
 ]
 
 [workspace.dependencies]
