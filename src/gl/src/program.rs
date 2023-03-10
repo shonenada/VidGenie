@@ -61,6 +61,24 @@ impl Program {
 
         Ok(location)
     }
+
+    pub fn get_uniform_location(&self, name: &str) -> Result<GLint> {
+        let ret = unsafe {
+            let uniform = CString::new(name)?;
+            gl::GetUniformLocation(self.id, uniform.as_ptr())
+        };
+
+        Ok(ret)
+    }
+
+    pub fn set_int_uniform(&self, name: &str, value: i32) -> Result<()> {
+        self.use_this();
+        unsafe {
+            let uniform = CString::new(name)?;
+            gl::Uniform1i(gl::GetUniformLocation(self.id, uniform.as_ptr()), value);
+        };
+        Ok(())
+    }
 }
 
 impl Drop for Program {
