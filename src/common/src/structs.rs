@@ -1,6 +1,6 @@
-
-use strum_macros::EnumString;
 use serde::Deserialize;
+
+use crate::asset::Asset;
 
 #[allow(unused)]
 #[derive(Debug, Deserialize)]
@@ -12,23 +12,14 @@ pub struct RenderOutput {
 
 #[allow(unused)]
 #[derive(Debug, Deserialize)]
-pub struct Asset {
-    #[serde(rename = "type")]
-    asset_type: String,
-    src: String,
-}
-
-#[allow(unused)]
-#[derive(Debug, Deserialize)]
 pub struct ClipOffset {
     x: u32,
     y: u32,
 }
 
-#[allow(unused)]
-#[derive(Debug, Deserialize, EnumString)]
+#[derive(Debug, PartialEq, Deserialize)]
 pub enum Position {
-    #[strum(serialize="center")]
+    #[serde(rename = "center")]
     Center,
 }
 
@@ -58,17 +49,6 @@ pub struct Timeline {
 #[allow(unused)]
 #[derive(Debug, Deserialize)]
 pub struct RenderRequest {
-    output: RenderOutput,
-    timeline: Timeline,
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_enum_from_str() {
-        let position = Position::from_str("center");
-        assert_eq!(position, Position::Center);
-    }
+    pub output: RenderOutput,
+    pub timeline: Timeline,
 }
