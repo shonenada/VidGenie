@@ -1,6 +1,7 @@
 use serde::Deserialize;
 
 use crate::asset::asset::AssetType;
+use crate::asset::MediaAsset;
 
 #[allow(unused)]
 #[derive(Debug, Deserialize)]
@@ -9,4 +10,8 @@ pub struct VideoAsset {
     pub(crate) src: String,
 }
 
-impl VideoAsset {}
+impl MediaAsset for VideoAsset {
+    fn load(&mut self) -> anyhow::Result<()> {
+        todo!()
+    }
+}

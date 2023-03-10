@@ -5,3 +5,7 @@ mod video;
 pub use asset::Asset;
 pub use self::image::ImageAsset;
 pub use video::VideoAsset;
+
+pub trait MediaAsset {
+    fn load(&mut self) -> anyhow::Result<()>;
+}

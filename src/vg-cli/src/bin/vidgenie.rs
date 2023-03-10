@@ -20,8 +20,6 @@ fn main() -> io::Result<()>{
     let mut data = String::new();
     file.read_to_string(&mut data).unwrap();
     let input: structs::RenderRequest = serde_json::from_str(&data)?;
-
     println!("Genie with {}; request: {:?}", file_path, input);
-
     Ok(())
 }
