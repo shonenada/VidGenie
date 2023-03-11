@@ -1,4 +1,3 @@
-use anyhow::{anyhow, Result};
 use gl::types::{GLuint, GLint};
 
 pub struct VertexArray {

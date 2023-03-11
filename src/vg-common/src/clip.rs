@@ -15,14 +15,22 @@ pub struct Clip {
     length: u32,
     offset: ClipOffset,
     position: String,
-
-    #[serde(default)]
-    inner_asset: Box<dyn MediaAsset>,
 }
 
-impl Clip {
+impl Into<VideoClip> for Clip {
+    fn into(self) -> VideoClip {
+        VideoClip{
+            asset: self.asset.into(),
+        }
+    }
+}
+
+pub struct VideoClip {
+    asset: Box<dyn MediaAsset>,
+}
+
+impl VideoClip {
     pub fn load_asset(&mut self) {
-        self.inner_asset = self.asset.into();
-        self.inner_asset.load().expect("Failed to load asset");
+        self.asset.load().expect("Failed to load asset");
     }
 }

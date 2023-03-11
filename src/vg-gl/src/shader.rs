@@ -4,7 +4,7 @@ use std::ptr;
 use anyhow::{anyhow, Result};
 use gl::types::{GLuint, GLint, GLenum};
 
-use crate::error::Shader;
+use crate::error::ShaderError;
 
 pub struct Shader {
     pub id: GLuint,
@@ -13,7 +13,7 @@ pub struct Shader {
 impl Shader {
     pub fn new(shader_type: GLenum, source: &str) -> Result<Self> {
         let shader = unsafe {
-            let src = CString::new(src)?;
+            let src = CString::new(source)?;
             let shader_id = gl::CreateShader(shader_type);
             gl::ShaderSource(shader_id, 1, &src.as_ptr(), ptr::null());
             gl::CompileShader(shader_id);

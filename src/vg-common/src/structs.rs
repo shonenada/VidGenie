@@ -5,9 +5,9 @@ use crate::clip::Clip;
 
 #[derive(Debug, Deserialize)]
 pub struct RenderOutput {
-    format: String,
-    width: u32,
-    height: u32,
+    pub format: String,
+    pub width: u32,
+    pub height: u32,
 }
 
 #[derive(Debug, PartialEq, Deserialize)]
@@ -18,13 +18,13 @@ pub enum Position {
 
 #[derive(Debug, Deserialize)]
 pub struct Track {
-    clips: Vec<Clip>,
+    pub clips: Vec<Clip>,
 }
 
 #[derive(Debug, Deserialize)]
 pub struct Timeline {
-    background: String,
-    tracks: Vec<Track>,
+    pub background: String,
+    pub tracks: Vec<Track>,
 }
 
 #[derive(Debug, Deserialize)]

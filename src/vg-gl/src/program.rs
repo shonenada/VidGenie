@@ -39,12 +39,12 @@ impl Program {
                 return Err(anyhow!(ProgramError::LinkError(log)));
             }
 
-            Self {
+            Ok(Self {
                 id: program_id,
-            }
+            })
         };
 
-        Ok(program);
+        program
     }
 
     pub fn use_this(&self) {
@@ -54,7 +54,7 @@ impl Program {
     }
 
     pub fn get_attrib_location(&self, attr: &str) -> Result<GLuint> {
-        let attrib = CString::new(attr);
+        let attrib = CString::new(attr)?;
         let location = unsafe {
             gl::GetAttribLocation(self.id, attrib.as_ptr()) as GLuint
         };

@@ -9,6 +9,7 @@ members = [
     "src/vg-common",
     "src/vg-cli",
     "src/vg-gl",
+    "src/vg-gst",
     "src/vg-video",
 ]
 
@@ -33,7 +34,7 @@ termion = { version = "2" }
 once_cell = "1.0"
 thiserror = "1.0.38"
 
-[workspace.build-dependencies]
+[build-dependencies]
 gl_generator = { version = "0.14" }
 
 [workspace.package]

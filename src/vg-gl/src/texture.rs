@@ -1,7 +1,7 @@
 use std::path::Path;
 
-use anyhow::{anyhow, Result};
-use gl::types::{GLuint, GLenum, GLsizeiptr};
+use anyhow::Result;
+use gl::types::GLuint;
 use image::EncodableLayout;
 
 pub struct Texture {
@@ -50,7 +50,6 @@ impl Texture {
             self.bind();
         }
     }
-
 }
 
 impl Drop for Texture {

@@ -1,4 +1,3 @@
-use anyhow::{anyhow, Result};
 use gl::types::{GLuint, GLenum, GLsizeiptr};
 
 pub struct GLBuffer {
