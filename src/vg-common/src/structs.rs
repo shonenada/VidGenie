@@ -1,7 +1,12 @@
-use serde::Deserialize;
+use colors_transform::Rgb;
+use serde::{Deserialize, Deserializer};
+use serde::de::Error;
 
-use crate::asset::Asset;
 use crate::clip::Clip;
+
+pub enum ParseError {
+    Message(String),
+}
 
 #[derive(Debug, Deserialize)]
 pub struct RenderOutput {
@@ -21,9 +26,20 @@ pub struct Track {
     pub clips: Vec<Clip>,
 }
 
+fn from_color_hex<'de, D>(deserializer: D) -> Result<Rgb, D::Error>
+    where
+        D: Deserializer<'de>,
+{
+    let s: &str = Deserialize::deserialize(deserializer)?;
+    Rgb::from_hex_str(s).map_err(|_| D::Error::custom("failed"))
+}
+
+
 #[derive(Debug, Deserialize)]
 pub struct Timeline {
-    pub background: String,
+    #[serde(deserialize_with = "from_color_hex")]
+    pub background: Rgb,
+
     pub tracks: Vec<Track>,
 }
 

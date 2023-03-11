@@ -1,8 +1,8 @@
 use std::fs::File;
-use std::io;
 use std::io::Read;
 
 use clap::Parser;
+use colors_transform::Color;
 
 use vg_common::structs::RenderRequest;
 use vg_video::{Frame, Video};
@@ -31,8 +31,17 @@ fn main() -> anyhow::Result<()> {
         .output_path(output)
         .build()?;
 
+    let pixels = params.output.width * params.output.height;
+    let bg = params.timeline.background;
+    let mut color = Vec::new();
+    for _ in 0..pixels {
+        color.push(bg.get_red() as u8);
+        color.push(bg.get_green() as u8);
+        color.push(bg.get_blue() as u8);
+    }
+
     video.start_render()?;
-    let frame = Frame::new(vec![128; 800 * 600 * 3], 1);
+    let frame = Frame::new(color, 1);
     video.send_frame(frame)?;
     video.finish()?;
     video.until_rendered();
