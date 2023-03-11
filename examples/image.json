@@ -1,0 +1,29 @@
+{
+    "output": {
+        "format": "mp4",
+        "width": 400,
+        "height": 300
+    },
+    "timeline": {
+        "background": "#000000",
+        "tracks": [
+            {
+                "clips": [
+                    {
+                        "asset": {
+                            "type": "image",
+                            "src": "https://shotstack-assets.s3.ap-southeast-2.amazonaws.com/templates/car-dealer-slideshow/pexels-photo-9513395.jpg"
+                        },
+                        "start": 0,
+                        "length": 3,
+                        "offset": {
+                            "x": 0,
+                            "y": 0
+                        },
+                        "position": "center"
+                    }
+                ]
+            }
+        ]
+    }
+}

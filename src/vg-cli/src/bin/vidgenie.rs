@@ -5,7 +5,7 @@ use std::io::Read;
 use clap::Parser;
 
 use vg_common::structs::RenderRequest;
-use vg_video::Video;
+use vg_video::{Frame, Video};
 
 #[derive(Parser, Debug)]
 struct Args {
@@ -23,12 +23,21 @@ fn main() -> anyhow::Result<()> {
     let params: RenderRequest = serde_json::from_str(&data).map_err(anyhow::Error::from)?;
     println!("Genie with {}; request: {:?}", file_path, params);
 
+    let output = "./vid-output.mp4";
     vg_gst::init_gst();
-    let video = Video::builder()
+    let mut video = Video::builder()
         .width(params.output.width)
         .height(params.output.height)
-        .output_path("./vid-output.mp4")
+        .output_path(output)
         .build()?;
+
+    video.start_render()?;
+    let frame = Frame::new(vec![128; 800 * 600 * 3], 1);
+    video.send_frame(frame)?;
+    video.finish()?;
+    video.until_rendered();
+    println!("Render into {}", output);
+
 
     Ok(())
 }
