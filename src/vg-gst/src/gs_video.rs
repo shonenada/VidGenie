@@ -3,11 +3,13 @@ use std::sync::mpsc::{channel, Receiver, Sender};
 
 use gst::prelude::*;
 
+#[derive(Debug)]
 pub enum FrameType {
     DATA,
     EOS,
 }
 
+#[derive(Debug)]
 pub struct Frame {
     data: Vec<u8>,
     frame_num: u64,

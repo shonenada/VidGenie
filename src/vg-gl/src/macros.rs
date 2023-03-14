@@ -11,7 +11,7 @@ macro_rules! set_attribute {
         $vbo.set_attribute::<$t>(
             $pos,
             (size_of_raw(member_ptr) / core::mem::size_of::<f32>()) as i32,
-            member_offset,
+            member_offset as u32,
         )
     }};
 }

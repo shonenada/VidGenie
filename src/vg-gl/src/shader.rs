@@ -2,7 +2,7 @@ use std::ffi::CString;
 use std::ptr;
 
 use anyhow::{anyhow, Result};
-use gl::types::{GLuint, GLint, GLenum};
+use gl::types::{GLenum, GLint, GLuint};
 
 use crate::error::ShaderError;
 
@@ -12,16 +12,20 @@ pub struct Shader {
 
 impl Shader {
     pub fn new(shader_type: GLenum, source: &str) -> Result<Self> {
-        let shader = unsafe {
+        unsafe {
             let src = CString::new(source)?;
             let shader_id = gl::CreateShader(shader_type);
             gl::ShaderSource(shader_id, 1, &src.as_ptr(), ptr::null());
             gl::CompileShader(shader_id);
 
-            let mut is_success: GLint = 0;
+            let mut is_success: GLint = 9;
             gl::GetShaderiv(shader_id, gl::COMPILE_STATUS, &mut is_success);
 
-            if is_success != 1 {
+            if is_success == 1 {
+                Ok(Self {
+                    id: shader_id,
+                })
+            } else {
                 let mut error_log_size: GLint = 0;
                 gl::GetShaderiv(shader_id, gl::INFO_LOG_LENGTH, &mut error_log_size);
 
@@ -34,16 +38,19 @@ impl Shader {
                 );
 
                 error_log.set_len(error_log_size as usize);
-
                 let log = String::from_utf8(error_log)?;
-                return Err(anyhow!(ShaderError::CompileError(log)));
-            }
 
-            Self {
-                id: shader_id,
+                Err(anyhow!(ShaderError::CompileError(log)))
             }
-        };
-        Ok(shader)
+        }
+    }
+
+    pub fn new_vertex(source: &str) -> Result<Self> {
+        Self::new(gl::VERTEX_SHADER, source)
+    }
+
+    pub fn new_fragment(source: &str) -> Result<Self> {
+        Self::new(gl::FRAGMENT_SHADER, source)
     }
 }
 
