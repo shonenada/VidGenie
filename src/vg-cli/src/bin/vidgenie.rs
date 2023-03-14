@@ -37,7 +37,6 @@ uniform sampler2D texture0;
 
 void main() {
     FragColor = texture(texture0, texCoord);
-    // FragColor = vec4(1.0, 1.0, 1.0, 1.0);
 }"#;
 
 #[derive(Parser, Debug)]
@@ -45,6 +44,10 @@ struct Args {
     /// File to genie.
     #[clap(short, long)]
     file: String,
+
+    /// Output path, default `vg-output.mp4`
+    #[clap(short, long)]
+    output: Option<String>,
 }
 
 struct ProgramRet(Program, VertexArray);
@@ -68,6 +71,10 @@ fn main() -> anyhow::Result<()> {
 
     let cli = Args::parse();
     let file_path = cli.file;
+    let output = match cli.output {
+        Some(v) => v,
+        None => "./vg-output.mp4".to_string()
+    };
     let mut file = File::open(file_path.clone()).map_err(anyhow::Error::from)?;
     let mut data = String::new();
     file.read_to_string(&mut data).unwrap();
@@ -78,13 +85,12 @@ fn main() -> anyhow::Result<()> {
     let width = params.output.width;
     let height = params.output.height;
 
-    let output = "./vid-output.mp4";
     vg_gst::init_gst();
 
     let mut video = Video::builder()
         .width(width)
         .height(height)
-        .output_path(output)
+        .output_path(&output)
         .build()?;
 
     let event_loop = EventLoop::new();
