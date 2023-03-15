@@ -34,7 +34,7 @@ impl Video {
     }
 
     pub fn finish(&self) -> Result<()> {
-        self.tx.send(Frame::eos());
+        self.tx.send(Frame::eos())?;
         Ok(())
     }
 

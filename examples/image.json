@@ -1,8 +1,8 @@
 {
     "output": {
         "format": "mp4",
-        "width": 400,
-        "height": 300
+        "width": 1920,
+        "height": 1080 
     },
     "timeline": {
         "background": "#8250df",

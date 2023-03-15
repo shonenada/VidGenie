@@ -1,7 +1,7 @@
 use std::path::Path;
 
 use anyhow::Result;
-use gl::types::GLuint;
+use gl::types::{GLint, GLsizei, GLuint};
 use image::EncodableLayout;
 
 pub struct Texture {
@@ -28,20 +28,44 @@ impl Texture {
     pub fn load(&self, path: &Path) -> Result<()> {
         self.bind();
         unsafe {
-            let img = image::open(path)?.to_rgba8();
+            let img = image::open(path)?;
+            let format;
+            if img.color().has_alpha() {
+                format = gl::RGBA;
+            } else {
+                format = gl::RGB;
+            }
+
             gl::TexImage2D(
                 gl::TEXTURE_2D,
                 0,
-                gl::RGBA as i32,
-                img.width() as i32,
-                img.height() as i32,
+                gl::RGBA as GLint,
+                img.width() as GLsizei,
+                img.height() as GLsizei,
                 0,
-                gl::RGBA,
+                format,
                 gl::UNSIGNED_BYTE,
                 img.as_bytes().as_ptr() as *const _,
             );
+            gl::GenerateMipmap(gl::TEXTURE_2D);
         }
         Ok(())
+    }
+
+    pub fn set_wrapping(&self, mode: GLuint) {
+        self.bind();
+        unsafe {
+            gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_S, mode as GLint);
+            gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_T, mode as GLint);
+        }
+    }
+
+    pub fn set_filtering(&self, mode: GLuint) {
+        self.bind();
+        unsafe {
+            gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MIN_FILTER, mode as GLint);
+            gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MAG_FILTER, mode as GLint);
+        }
     }
 
     pub fn activate(&self, unit: GLuint) {
