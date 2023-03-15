@@ -1,3 +1,3 @@
 mod asset;
-pub mod structs;
 mod clip;
+pub mod structs;

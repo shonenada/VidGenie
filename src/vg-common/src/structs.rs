@@ -1,6 +1,6 @@
 use colors_transform::Rgb;
-use serde::{Deserialize, Deserializer};
 use serde::de::Error;
+use serde::{Deserialize, Deserializer};
 
 use crate::clip::Clip;
 
@@ -27,13 +27,12 @@ pub struct Track {
 }
 
 fn from_color_hex<'de, D>(deserializer: D) -> Result<Rgb, D::Error>
-    where
-        D: Deserializer<'de>,
+where
+    D: Deserializer<'de>,
 {
     let s: &str = Deserialize::deserialize(deserializer)?;
     Rgb::from_hex_str(s).map_err(|_| D::Error::custom("failed"))
 }
-
 
 #[derive(Debug, Deserialize)]
 pub struct Timeline {

@@ -6,13 +6,10 @@ use std::ptr;
 use clap::Parser;
 use colors_transform::Color;
 use gl::types::GLsizei;
-use glutin::ContextBuilder;
-use glutin::event_loop::EventLoop;
-use glutin::window::WindowBuilder;
-use log::{debug, info};
+use log::debug;
 
 use vg_common::structs::RenderRequest;
-use vg_gl::{GLBuffer, Program, set_attribute, Shader, Texture, Vertex, VertexArray};
+use vg_gl::{init_gl, Renderer, Texture};
 use vg_video::{Frame, Video};
 
 const VS_SRC: &str = r#"
@@ -50,22 +47,6 @@ struct Args {
     output: Option<String>,
 }
 
-struct ProgramRet(Program, VertexArray);
-
-#[rustfmt::skip]
-const VERTICES: [Vertex; 4] = [
-    Vertex([-0.5, -0.5], [0.0, 1.0]),
-    Vertex([0.5, -0.5], [1.0, 1.0]),
-    Vertex([0.5, 0.5], [1.0, 0.0]),
-    Vertex([-0.5, 0.5], [0.0, 0.0]),
-];
-
-#[rustfmt::skip]
-const INDICES: [i32; 6] = [
-    0, 1, 2,
-    2, 3, 0
-];
-
 fn main() -> anyhow::Result<()> {
     env_logger::init();
 
@@ -73,7 +54,7 @@ fn main() -> anyhow::Result<()> {
     let file_path = cli.file;
     let output = match cli.output {
         Some(v) => v,
-        None => "./vg-output.mp4".to_string()
+        None => "./vg-output.mp4".to_string(),
     };
     let mut file = File::open(file_path.clone()).map_err(anyhow::Error::from)?;
     let mut data = String::new();
@@ -85,6 +66,19 @@ fn main() -> anyhow::Result<()> {
     let width = params.output.width;
     let height = params.output.height;
 
+    let _gl_context = init_gl(width, height);
+    let renderer = Renderer::new(VS_SRC, FS_SRC)?;
+
+    let texture0 = Texture::new();
+    texture0.set_wrapping(gl::REPEAT);
+    texture0.set_filtering(gl::LINE_LOOP);
+    texture0.load(&Path::new("./resources/wood.jpg"))?; // TODO: replace me
+    renderer.program.set_int_uniform("texture0", 0)?;
+
+    unsafe {
+        gl::BlendFunc(gl::SRC_ALPHA, gl::ONE_MINUS_SRC_ALPHA);
+        gl::Enable(gl::BLEND);
+    }
     vg_gst::init_gst();
 
     let mut video = Video::builder()
@@ -93,49 +87,12 @@ fn main() -> anyhow::Result<()> {
         .output_path(&output)
         .build()?;
 
-    let event_loop = EventLoop::new();
-    let wb = WindowBuilder::new()
-        .with_title("VidGenie");
-    let cb = ContextBuilder::new().with_vsync(false);
-    let context = cb.build_windowed(wb, &event_loop).unwrap();
-    let context = unsafe { context.make_current().unwrap() };
-    gl::load_with(|s| context.get_proc_address(s) as *const _);
-
-    let ver_shader = Shader::new(gl::VERTEX_SHADER, VS_SRC)?;
-    let frag_shader = Shader::new_fragment(FS_SRC)?;
-    let program = Program::new(&[ver_shader, frag_shader])?;
-    unsafe { gl::Viewport(0, 0, width as GLsizei, height as GLsizei); }
-
-    let vertex_array = VertexArray::new();
-    vertex_array.bind();
-
-    let vertex_buffer = GLBuffer::new_array_buffer();
-    vertex_buffer.set_data(&VERTICES, gl::STATIC_DRAW);
-
-    let index_buffer = GLBuffer::new_element_array_buffer();
-    index_buffer.set_data(&INDICES, gl::STATIC_DRAW);
-
-    let pos_attrib = program.get_attrib_location("position")?;
-    let color_attrib = program.get_attrib_location("verTexCoord")?;
-    unsafe {
-        set_attribute!(vertex_array, pos_attrib, Vertex::0);
-        set_attribute!(vertex_array, color_attrib, Vertex::1);
-    }
-
-    let texture0 = Texture::new();
-    texture0.set_wrapping(gl::REPEAT);
-    texture0.set_filtering(gl::LINE_LOOP);
-    texture0.load(&Path::new("./resources/wood.jpg"))?; // TODO: replace me
-    program.set_int_uniform("texture0", 0)?;
-
-    unsafe {
-        gl::BlendFunc(gl::SRC_ALPHA, gl::ONE_MINUS_SRC_ALPHA);
-        gl::Enable(gl::BLEND);
-    }
-
     let data_len = width * height * 3;
     let bg = params.timeline.background;
 
+    unsafe {
+        gl::Viewport(0, 0, width as GLsizei, height as GLsizei);
+    }
     video.start_render()?;
     for i in 0..60 {
         debug!("Writing frame num: {}", i);
@@ -147,8 +104,8 @@ fn main() -> anyhow::Result<()> {
             gl::ClearColor(red, green, blue, 1.0);
             gl::Clear(gl::COLOR_BUFFER_BIT);
             texture0.activate(gl::TEXTURE0);
-            program.use_this();
-            vertex_array.bind();
+            renderer.program.use_this();
+            renderer.vertex_array.bind();
             gl::DrawElements(gl::TRIANGLES, 6, gl::UNSIGNED_INT, ptr::null());
 
             gl::ReadPixels(

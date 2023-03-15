@@ -1,7 +1,5 @@
 extern crate image as image_crate;
-use serde::Deserialize;
 
-use crate::asset::asset::AssetType;
 use crate::asset::MediaAsset;
 
 pub struct ImageAsset {

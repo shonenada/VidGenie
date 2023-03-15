@@ -19,7 +19,7 @@ pub struct Clip {
 
 impl Into<VideoClip> for Clip {
     fn into(self) -> VideoClip {
-        VideoClip{
+        VideoClip {
             asset: self.asset.into(),
         }
     }

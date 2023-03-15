@@ -1,6 +1,5 @@
 use serde::Deserialize;
 
-use crate::asset::asset::AssetType;
 use crate::asset::MediaAsset;
 
 #[allow(unused)]

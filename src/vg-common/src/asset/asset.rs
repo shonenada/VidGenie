@@ -1,8 +1,6 @@
 use std::fmt;
 use std::fmt::Formatter;
 
-use anyhow::anyhow;
-use image::DynamicImage;
 use serde::Deserialize;
 
 use crate::asset::{ImageAsset, MediaAsset};
@@ -44,9 +42,7 @@ impl Asset {
     }
 
     pub fn into_video_asset(self) -> anyhow::Result<VideoAsset> {
-        Ok(VideoAsset{
-            src: self.src,
-        })
+        Ok(VideoAsset { src: self.src })
     }
 
     pub fn into(self) -> Box<dyn MediaAsset> {
@@ -55,5 +51,4 @@ impl Asset {
             AssetType::Video => Box::new(self.into_video_asset().unwrap()),
         }
     }
-
 }

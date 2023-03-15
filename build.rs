@@ -8,8 +8,8 @@ fn generate_gl_bindings() {
         gl_generator::Fallbacks::All,
         [],
     )
-        .write_bindings(gl_generator::StructGenerator, &mut file)
-        .unwrap();
+    .write_bindings(gl_generator::StructGenerator, &mut file)
+    .unwrap();
 }
 
 fn main() {
