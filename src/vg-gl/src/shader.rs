@@ -22,9 +22,7 @@ impl Shader {
             gl::GetShaderiv(shader_id, gl::COMPILE_STATUS, &mut is_success);
 
             if is_success == 1 {
-                Ok(Self {
-                    id: shader_id,
-                })
+                Ok(Self { id: shader_id })
             } else {
                 let mut error_log_size: GLint = 0;
                 gl::GetShaderiv(shader_id, gl::INFO_LOG_LENGTH, &mut error_log_size);

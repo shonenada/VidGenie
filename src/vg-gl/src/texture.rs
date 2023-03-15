@@ -2,7 +2,6 @@ use std::path::Path;
 
 use anyhow::Result;
 use gl::types::{GLint, GLsizei, GLuint};
-use image::EncodableLayout;
 
 pub struct Texture {
     pub id: GLuint,

@@ -1,4 +1,4 @@
-use gl::types::{GLuint, GLint};
+use gl::types::{GLint, GLuint};
 
 pub struct VertexArray {
     pub id: GLuint,
@@ -29,7 +29,6 @@ impl VertexArray {
                 gl::FALSE,
                 std::mem::size_of::<V>() as GLint,
                 offset as *const _,
-
             );
             gl::EnableVertexAttribArray(attrib_pos);
         }

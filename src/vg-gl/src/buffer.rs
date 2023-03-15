@@ -1,4 +1,4 @@
-use gl::types::{GLuint, GLenum, GLsizeiptr};
+use gl::types::{GLenum, GLsizeiptr, GLuint};
 
 pub struct GLBuffer {
     pub id: GLuint,
@@ -7,7 +7,7 @@ pub struct GLBuffer {
 
 impl GLBuffer {
     pub fn new(target: GLenum) -> Self {
-        let mut id :GLuint = 0;
+        let mut id: GLuint = 0;
         unsafe {
             gl::GenBuffers(1, &mut id);
         }

@@ -1,10 +1,10 @@
 use std::ffi::CString;
 
 use anyhow::{anyhow, Result};
-use gl::types::{GLuint, GLint};
+use gl::types::{GLint, GLuint};
 
-use crate::shader::Shader;
 use crate::error::ProgramError;
+use crate::shader::Shader;
 
 pub struct Program {
     pub id: GLuint,
@@ -39,9 +39,7 @@ impl Program {
                 return Err(anyhow!(ProgramError::LinkError(log)));
             }
 
-            Ok(Self {
-                id: program_id,
-            })
+            Ok(Self { id: program_id })
         };
 
         program
@@ -55,9 +53,7 @@ impl Program {
 
     pub fn get_attrib_location(&self, attr: &str) -> Result<GLuint> {
         let attrib = CString::new(attr)?;
-        let location = unsafe {
-            gl::GetAttribLocation(self.id, attrib.as_ptr()) as GLuint
-        };
+        let location = unsafe { gl::GetAttribLocation(self.id, attrib.as_ptr()) as GLuint };
 
         Ok(location)
     }
