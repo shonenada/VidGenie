@@ -98,8 +98,7 @@ fn main() -> anyhow::Result<()> {
 
     video.start_render()?;
 
-    // let draw_count = 6 * indices_arr.len();
-    let draw_count = 18;
+    let draw_count = 6 * indices_arr.len();
     // 6 indices for each quad
     debug!("Draw Count: {}", draw_count);
     for i in 0..60 {
