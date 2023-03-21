@@ -7,6 +7,9 @@ type TextureCoords = [f32; 2];
 #[repr(C, packed)]
 pub struct Vertex(pub Pos, pub TextureCoords);
 
+const VERTEX_SRC: &str = include_str!("shader/vertex.glsl");
+const FRAGMENT_SRC: &str = include_str!("shader/fragment.glsl");
+
 pub struct Renderer {
     pub program: Program,
     pub vertex_array: VertexArray,
@@ -18,9 +21,9 @@ pub struct Renderer {
 }
 
 impl Renderer {
-    pub fn new(vertex_source: &str, fragment_source: &str) -> anyhow::Result<Self> {
-        let vertex_shader = Shader::new_vertex(vertex_source)?;
-        let fragment_shader = Shader::new_fragment(fragment_source)?;
+    pub fn new() -> anyhow::Result<Self> {
+        let vertex_shader = Shader::new_vertex(VERTEX_SRC)?;
+        let fragment_shader = Shader::new_fragment(FRAGMENT_SRC)?;
         let program = Program::new(&[vertex_shader, fragment_shader])?;
 
         let vertex_array = VertexArray::new();

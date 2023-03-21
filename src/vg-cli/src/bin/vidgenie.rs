@@ -26,36 +26,6 @@ const INDICES: [i32; 6] = [
     2, 3, 0
 ];
 
-const VS_SRC: &str = r#"
-#version 450 core
-layout (location = 0) in float inTexIdx;
-layout (location = 1) in vec2 position;
-layout (location = 2) in vec2 verTexCoord;
-
-out vec2 texCoord;
-out float texIdxf;
-
-void main() {
-    gl_Position = vec4(position, 0.0, 1.0);
-    texCoord = verTexCoord;
-    texIdxf = inTexIdx;
-}"#;
-
-const FS_SRC: &str = r#"
-#version 450 core
-out vec4 FragColor;
-
-in vec2 texCoord;
-// in float texIdxf;
-
-uniform float texIdxf;
-uniform sampler2D textures[32];
-
-void main() {
-    int texIdx = int(texIdxf);
-    FragColor = texture(textures[texIdx], texCoord);
-}"#;
-
 #[derive(Parser, Debug)]
 struct Args {
     /// File to genie.
@@ -87,7 +57,7 @@ fn main() -> anyhow::Result<()> {
     let height = params.output.height;
 
     let _gl_context = init_gl(width, height);
-    let renderer = Renderer::new(VS_SRC, FS_SRC)?;
+    let renderer = Renderer::new();
 
     let mut quads: Vec<Quad> = Vec::new();
     let mut textures: Vec<Texture> = Vec::new();
