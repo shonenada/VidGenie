@@ -1,24 +1,11 @@
-use crate::{GLBuffer, Program, set_attribute, Shader, VertexArray};
+use crate::{GLBuffer, Program, Quad, set_attribute, Shader, VertexArray};
 
 type Pos = [f32; 2];
 type TextureCoords = [f32; 2];
 
+#[derive(Clone, Copy, Debug, Default)]
 #[repr(C, packed)]
 pub struct Vertex(pub Pos, pub TextureCoords);
-
-#[rustfmt::skip]
-const VERTICES: [Vertex; 4] = [
-    Vertex([-0.5, -0.5], [0.0, 1.0]),
-    Vertex([0.5, -0.5], [1.0, 1.0]),
-    Vertex([0.5, 0.5], [1.0, 0.0]),
-    Vertex([-0.5, 0.5], [0.0, 0.0]),
-];
-
-#[rustfmt::skip]
-const INDICES: [i32; 6] = [
-    0, 1, 2,
-    2, 3, 0
-];
 
 pub struct Renderer {
     pub program: Program,
@@ -40,17 +27,7 @@ impl Renderer {
         vertex_array.bind();
 
         let vertex_buffer = GLBuffer::new_array_buffer();
-        vertex_buffer.set_data(&VERTICES, gl::STATIC_DRAW);
-
         let index_buffer = GLBuffer::new_element_array_buffer();
-        index_buffer.set_data(&INDICES, gl::STATIC_DRAW);
-
-        let pos_attrib = program.get_attrib_location("position")?;
-        let color_attrib = program.get_attrib_location("verTexCoord")?;
-        unsafe {
-            set_attribute!(vertex_array, pos_attrib, Vertex::0);
-            set_attribute!(vertex_array, color_attrib, Vertex::1);
-        }
 
         Ok(Self {
             program,
@@ -58,5 +35,27 @@ impl Renderer {
             index_buffer,
             vertex_buffer,
         })
+    }
+
+    pub fn set_vertex_buffer_data(&self, data: &[Quad]) -> anyhow::Result<()> {
+        self.vertex_buffer.set_data(data, gl::STATIC_DRAW);
+        Ok(())
+    }
+
+    pub fn set_index_buffer_data(&self, data: &[i32; 6]) -> anyhow::Result<()> {
+        self.index_buffer.set_data(data, gl::STATIC_DRAW);
+        Ok(())
+    }
+
+    pub fn set_attrs(&self) -> anyhow::Result<()> {
+        let pos_attrib = self.program.get_attrib_location("position")?;
+        let color_attrib = self.program.get_attrib_location("verTexCoord")?;
+        let va = &self.vertex_array;
+        unsafe {
+            set_attribute!(va, pos_attrib, Vertex::0);
+            set_attribute!(va, color_attrib, Vertex::1);
+        }
+
+        Ok(())
     }
 }

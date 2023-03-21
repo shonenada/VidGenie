@@ -9,6 +9,7 @@ pub use crate::renderer::{Renderer, Vertex};
 pub use crate::shader::Shader;
 pub use crate::texture::Texture;
 pub use crate::vertex_array::VertexArray;
+pub use crate::quad::Quad;
 
 mod buffer;
 mod error;
@@ -18,6 +19,7 @@ mod renderer;
 mod shader;
 mod texture;
 mod vertex_array;
+mod quad;
 
 #[allow(dead_code)]
 pub struct GLContext {

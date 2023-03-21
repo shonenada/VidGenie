@@ -8,9 +8,23 @@ use colors_transform::Color;
 use gl::types::{GLenum, GLsizei};
 use log::debug;
 
-use vg_gl::{init_gl, Renderer, Texture};
+use vg_gl::{init_gl, Quad, Renderer, Texture, Vertex};
 use vg_video::{Frame, ImageClipTexture, VideoEncoder};
 use vg_video::RenderRequest;
+
+#[rustfmt::skip]
+const VERTICES: Quad = Quad([
+    Vertex([-0.5, -0.5], [0.0, 1.0]),
+    Vertex([0.5, -0.5], [1.0, 1.0]),
+    Vertex([0.5, 0.5], [1.0, 0.0]),
+    Vertex([-0.5, 0.5], [0.0, 0.0]),
+]);
+
+#[rustfmt::skip]
+const INDICES: [i32; 6] = [
+    0, 1, 2,
+    2, 3, 0
+];
 
 const VS_SRC: &str = r#"
 #version 450 core
@@ -75,18 +89,27 @@ fn main() -> anyhow::Result<()> {
     let _gl_context = init_gl(width, height);
     let renderer = Renderer::new(VS_SRC, FS_SRC)?;
 
+    let mut quads: Vec<Quad> = Vec::new();
     let mut textures: Vec<Texture> = Vec::new();
     for track in &params.timeline.tracks {
         for (idx, clip) in track.clips.iter().enumerate() {
             let unit = ((gl::TEXTURE0 as usize) + idx) as GLenum;
             let mut texture = ImageClipTexture::new(&clip.asset.src, unit);
+            texture.set_x(clip.offset.x);
+            texture.set_y(clip.offset.y);
             texture.load()?;
+            let quad = texture.quad(width as f32, height as f32);
+            quads.push(quad);
             textures.push(texture.into_gl_texture());
         }
     }
     let textures_uniform: Vec<i32> = textures.iter().map(|each| {
         (each.unit - gl::TEXTURE0) as i32
     }).collect();
+
+    renderer.set_vertex_buffer_data(quads.as_slice())?;
+    renderer.set_index_buffer_data(&INDICES)?;
+    renderer.set_attrs()?;
     renderer.program.set_int_array_uniform("textures", textures_uniform.as_slice())?;
     renderer.program.set_float_uniform("texIdxf", 0.0)?;
 

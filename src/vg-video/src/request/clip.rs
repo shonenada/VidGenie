@@ -6,8 +6,8 @@ use crate::asset::{Asset, MediaAsset};
 
 #[derive(Debug, Deserialize)]
 pub struct ClipOffset {
-    x: u32,
-    y: u32,
+    pub x: u32,
+    pub y: u32,
 }
 
 #[derive(Debug, Deserialize)]
