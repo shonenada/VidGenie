@@ -1,9 +1,11 @@
 extern crate image as image_crate;
 
 use gl::types::GLenum;
-use log::{debug, info};
+use log::info;
 
 use vg_gl::{Indices, Quad, Texture, Vertex};
+
+const VERTEX_PER_QUAD: i32 = 4;
 
 #[derive(Default)]
 pub struct ImageClipOffset {
@@ -13,19 +15,20 @@ pub struct ImageClipOffset {
 
 pub struct ImageClipTexture {
     url: String,
-    texture_unit: GLenum,
-    texture: Option<Texture>,
+    texture_idx: u32,
 
+    texture: Option<Texture>,
     image_width: u32,
     image_height: u32,
     offset: ImageClipOffset,
 }
 
 impl ImageClipTexture {
-    pub fn new(url: &str, texture_unit: GLenum) -> Self {
+    pub fn new(url: &str, idx: u32) -> Self {
         Self {
             url: url.to_string(),
-            texture_unit,
+            texture_idx: idx,
+
             texture: None,
             offset: ImageClipOffset::default(),
             image_width: 0,
@@ -42,15 +45,15 @@ impl ImageClipTexture {
     }
 
     pub fn load(&mut self) -> anyhow::Result<()> {
-        let url = self.url.clone();
-        info!("start download from {}", url);
-        let img_bytes = reqwest::blocking::get(url)?.bytes()?;
+        info!("start download from {}", self.url);
+        let img_bytes = reqwest::blocking::get(&self.url)?.bytes()?;
         let data = image_crate::load_from_memory(&img_bytes)?;
 
         self.image_width = data.width();
         self.image_height = data.height();
 
-        let texture = Texture::new(self.texture_unit);
+        let unit = (gl::TEXTURE0 + self.texture_idx) as GLenum;
+        let texture = Texture::new(unit);
         texture.set_wrapping(gl::REPEAT);
         texture.set_filtering(gl::LINE_LOOP);
         texture.load_from_image(data)?;
@@ -61,11 +64,16 @@ impl ImageClipTexture {
         Ok(())
     }
 
-    pub fn quad(&self, window_width: f32, window_height: f32) -> Quad {
-        let idx = (self.texture_unit - gl::TEXTURE0) as f32;
-        let (x0, y0) = get_coord(window_width, window_height, self.offset.x as f32, self.offset.y as f32);
-        let (x1, y1) = get_coord(window_width, window_height, (self.offset.x + self.image_width) as f32, (self.offset.y + self.image_height) as f32);
+    pub fn quad(&self, width: f32, height: f32) -> Quad {
+        let x0_ = self.offset.x as f32;
+        let y0_ = self.offset.y as f32;
+        let x1_ = x0_ + self.image_width as f32;
+        let y1_ = y0_ + self.image_height as f32;
 
+        let (x0, y0) = get_coord(width, height, x0_, y0_);
+        let (x1, y1) = get_coord(width, height, x1_, y1_);
+
+        let idx = self.texture_idx as f32;
         Quad([
             Vertex([x0, y0], [0.0, 1.0], idx),
             Vertex([x1, y0], [1.0, 1.0], idx),
@@ -75,11 +83,15 @@ impl ImageClipTexture {
     }
 
     pub fn indices(&self) -> Indices {
-        let idx = (self.texture_unit - gl::TEXTURE0) as i32;
-        let offset = idx * 4; // 4 vertex for each quad
+        let idx = self.texture_idx as i32;
+        let offset = idx * VERTEX_PER_QUAD;
         Indices([
-            offset, 1 + offset, 2 + offset,
-            2 + offset, 3 + offset, offset,
+            offset,
+            offset + 1,
+            offset + 2,
+            offset + 2,
+            offset + 3,
+            offset,
         ])
     }
 
@@ -92,17 +104,17 @@ fn get_coord(width: f32, height: f32, x: f32, y: f32) -> (f32, f32) {
     let half_width = width / 2.0;
     let half_height = height / 2.0;
 
-    let x0: f32 = if x < half_width {
+    let x_: f32 = if x < half_width {
         ((half_width - x) / half_width) * -1.0
     } else {
         (x - half_width) / half_width
     };
 
-    let y0: f32 = if y < half_height {
+    let y_: f32 = if y < half_height {
         ((half_height - y) / half_height) * -1.0
     } else {
         (y - half_height) / half_height
     };
 
-    (x0, y0)
+    (x_, y_)
 }

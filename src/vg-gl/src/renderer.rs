@@ -1,14 +1,12 @@
-use std::mem;
-use std::mem::size_of;
-
 use crate::{GLBuffer, Program, Quad, set_attribute, Shader, VertexArray};
 
 type Pos = [f32; 2]; // x, y
 type TextureCoords = [f32; 2];
+type TexIdx = f32;
 
 #[derive(Clone, Copy, Debug, Default)]
 #[repr(C, packed)]
-pub struct Vertex(pub Pos, pub TextureCoords, pub f32);
+pub struct Vertex(pub Pos, pub TextureCoords, pub TexIdx);
 
 #[derive(Clone, Copy, Debug, Default)]
 #[repr(C, packed)]

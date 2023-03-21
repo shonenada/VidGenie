@@ -49,8 +49,7 @@ fn main() -> anyhow::Result<()> {
     let mut textures: Vec<Texture> = Vec::new();
     for track in &params.timeline.tracks {
         for (idx, clip) in track.clips.iter().enumerate() {
-            let unit = ((gl::TEXTURE0 as usize) + idx) as GLenum;
-            let mut texture = ImageClipTexture::new(&clip.asset.src, unit);
+            let mut texture = ImageClipTexture::new(&clip.asset.src, idx as u32);
             texture.set_x(clip.offset.x);
             texture.set_y(clip.offset.y);
             texture.load()?;
