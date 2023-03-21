@@ -1,15 +1,15 @@
+use glutin::{ContextBuilder, ContextWrapper, PossiblyCurrent};
 use glutin::dpi::LogicalSize;
 use glutin::event_loop::EventLoop;
 use glutin::window::{Window, WindowBuilder};
-use glutin::{ContextBuilder, ContextWrapper, PossiblyCurrent};
 
 pub use crate::buffer::GLBuffer;
 pub use crate::program::Program;
-pub use crate::renderer::{Renderer, Vertex};
+pub use crate::quad::Quad;
+pub use crate::renderer::{Indices, Renderer, Vertex};
 pub use crate::shader::Shader;
 pub use crate::texture::Texture;
 pub use crate::vertex_array::VertexArray;
-pub use crate::quad::Quad;
 
 mod buffer;
 mod error;

@@ -3,7 +3,7 @@ extern crate image as image_crate;
 use gl::types::GLenum;
 use log::{debug, info};
 
-use vg_gl::{Quad, Texture, Vertex};
+use vg_gl::{Indices, Quad, Texture, Vertex};
 
 #[derive(Default)]
 pub struct ImageClipOffset {
@@ -62,17 +62,24 @@ impl ImageClipTexture {
     }
 
     pub fn quad(&self, window_width: f32, window_height: f32) -> Quad {
+        let idx = (self.texture_unit - gl::TEXTURE0) as f32;
         let (x0, y0) = get_coord(window_width, window_height, self.offset.x as f32, self.offset.y as f32);
         let (x1, y1) = get_coord(window_width, window_height, (self.offset.x + self.image_width) as f32, (self.offset.y + self.image_height) as f32);
 
-        debug!("w, h = ({}, {}); iw, ih = ({}, {});", window_width, window_height, self.image_width, self.image_height);
-        debug!("p0 = ({}, {}); p1 = ({}, {});", x0, y0, x1, y1);
-
         Quad([
-            Vertex([x0, y0], [0.0, 1.0]),
-            Vertex([x1, y0], [1.0, 1.0]),
-            Vertex([x1, y1], [1.0, 0.0]),
-            Vertex([x0, y1], [0.0, 0.0]),
+            Vertex([x0, y0], [0.0, 1.0], idx),
+            Vertex([x1, y0], [1.0, 1.0], idx),
+            Vertex([x1, y1], [1.0, 0.0], idx),
+            Vertex([x0, y1], [0.0, 0.0], idx),
+        ])
+    }
+
+    pub fn indices(&self) -> Indices {
+        let idx = (self.texture_unit - gl::TEXTURE0) as i32;
+        let offset = idx * 4; // 4 vertex for each quad
+        Indices([
+            offset, 1 + offset, 2 + offset,
+            2 + offset, 3 + offset, offset,
         ])
     }
 
@@ -84,8 +91,6 @@ impl ImageClipTexture {
 fn get_coord(width: f32, height: f32, x: f32, y: f32) -> (f32, f32) {
     let half_width = width / 2.0;
     let half_height = height / 2.0;
-
-    debug!("ix, iy = {}, {}", x, y);
 
     let x0: f32 = if x < half_width {
         ((half_width - x) / half_width) * -1.0

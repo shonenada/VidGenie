@@ -19,12 +19,12 @@ impl VertexArray {
         }
     }
 
-    pub fn set_attribute<V: Sized>(&self, attrib_pos: GLuint, components: GLint, offset: GLuint) {
+    pub fn set_attribute<V: Sized>(&self, attrib_pos: GLuint, size: GLint, offset: GLuint) {
         self.bind();
         unsafe {
             gl::VertexAttribPointer(
                 attrib_pos,
-                components,
+                size,
                 gl::FLOAT,
                 gl::FALSE,
                 std::mem::size_of::<V>() as GLint,

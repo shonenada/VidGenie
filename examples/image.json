@@ -1,8 +1,8 @@
 {
     "output": {
         "format": "mp4",
-        "width": 1920,
-        "height": 1080 
+        "width": 1280,
+        "height": 720
     },
     "timeline": {
         "background": "#8250df",
@@ -12,13 +12,39 @@
                     {
                         "asset": {
                             "type": "image",
-                            "src": "https://shotstack-assets.s3.ap-southeast-2.amazonaws.com/templates/car-dealer-slideshow/pexels-photo-9513395.jpg"
+                            "src": "http://localhost:8000/wood.jpg"
                         },
-                        "start": 0,
-                        "length": 3,
+                        "start": 0.0,
+                        "length": 3.0,
                         "offset": {
                             "x": 0,
                             "y": 0
+                        },
+                        "position": "center"
+                    },
+                    {
+                        "asset": {
+                            "type": "image",
+                            "src": "http://localhost:8000/container.png"
+                        },
+                        "start": 0.0,
+                        "length": 3.0,
+                        "offset": {
+                            "x": 0,
+                            "y": 200
+                        },
+                        "position": "center"
+                    },
+                    {
+                        "asset": {
+                            "type": "image",
+                            "src": "http://localhost:8000/wood.jpg"
+                        },
+                        "start": 0.0,
+                        "length": 3.0,
+                        "offset": {
+                            "x": 200,
+                            "y": 200
                         },
                         "position": "center"
                     }

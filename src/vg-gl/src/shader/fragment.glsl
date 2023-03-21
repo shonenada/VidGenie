@@ -2,9 +2,8 @@
 out vec4 FragColor;
 
 in vec2 texCoord;
-// in float texIdxf;
+in float texIdxf;
 
-uniform float texIdxf;
 uniform sampler2D textures[32];
 
 void main() {

@@ -2,6 +2,7 @@ use std::path::Path;
 
 use anyhow::Result;
 use gl::types::{GLenum, GLint, GLsizei, GLuint};
+use log::debug;
 
 pub struct Texture {
     pub id: GLuint,
@@ -76,6 +77,7 @@ impl Texture {
     }
 
     pub fn activate(&self) {
+        debug!("Activate texture {}", self.unit);
         unsafe {
             gl::ActiveTexture(self.unit);
             self.bind();

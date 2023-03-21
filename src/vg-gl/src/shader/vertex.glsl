@@ -1,7 +1,7 @@
 #version 450 core
-layout (location = 0) in float inTexIdx;
-layout (location = 1) in vec2 position;
-layout (location = 2) in vec2 verTexCoord;
+layout (location = 0) in vec2 position;
+layout (location = 1) in vec2 verTexCoord;
+layout (location = 2) in float inTexIdx;
 
 out vec2 texCoord;
 out float texIdxf;

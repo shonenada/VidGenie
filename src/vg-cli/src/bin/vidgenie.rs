@@ -1,6 +1,5 @@
 use std::fs::File;
 use std::io::Read;
-use std::path::Path;
 use std::ptr;
 
 use clap::Parser;
@@ -8,23 +7,9 @@ use colors_transform::Color;
 use gl::types::{GLenum, GLsizei};
 use log::debug;
 
-use vg_gl::{init_gl, Quad, Renderer, Texture, Vertex};
+use vg_gl::{Indices, init_gl, Quad, Renderer, Texture};
 use vg_video::{Frame, ImageClipTexture, VideoEncoder};
 use vg_video::RenderRequest;
-
-#[rustfmt::skip]
-const VERTICES: Quad = Quad([
-    Vertex([-0.5, -0.5], [0.0, 1.0]),
-    Vertex([0.5, -0.5], [1.0, 1.0]),
-    Vertex([0.5, 0.5], [1.0, 0.0]),
-    Vertex([-0.5, 0.5], [0.0, 0.0]),
-]);
-
-#[rustfmt::skip]
-const INDICES: [i32; 6] = [
-    0, 1, 2,
-    2, 3, 0
-];
 
 #[derive(Parser, Debug)]
 struct Args {
@@ -59,6 +44,7 @@ fn main() -> anyhow::Result<()> {
     let _gl_context = init_gl(width, height);
     let renderer = Renderer::new()?;
 
+    let mut indices_arr: Vec<Indices> = Vec::new();
     let mut quads: Vec<Quad> = Vec::new();
     let mut textures: Vec<Texture> = Vec::new();
     for track in &params.timeline.tracks {
@@ -68,8 +54,11 @@ fn main() -> anyhow::Result<()> {
             texture.set_x(clip.offset.x);
             texture.set_y(clip.offset.y);
             texture.load()?;
+
             let quad = texture.quad(width as f32, height as f32);
             quads.push(quad);
+            let indices = texture.indices();
+            indices_arr.push(indices);
             textures.push(texture.into_gl_texture());
         }
     }
@@ -77,11 +66,13 @@ fn main() -> anyhow::Result<()> {
         (each.unit - gl::TEXTURE0) as i32
     }).collect();
 
+    debug!("Quads: {:#?}", quads.as_slice());
+    debug!("Indices: {:#?}", indices_arr.as_slice());
+
     renderer.set_vertex_buffer_data(quads.as_slice())?;
-    renderer.set_index_buffer_data(&INDICES)?;
+    renderer.set_index_buffer_data(indices_arr.as_slice())?;
     renderer.set_attrs()?;
     renderer.program.set_int_array_uniform("textures", textures_uniform.as_slice())?;
-    renderer.program.set_float_uniform("texIdxf", 0.0)?;
 
     unsafe {
         gl::BlendFunc(gl::SRC_ALPHA, gl::ONE_MINUS_SRC_ALPHA);
@@ -101,7 +92,16 @@ fn main() -> anyhow::Result<()> {
     unsafe {
         gl::Viewport(0, 0, width as GLsizei, height as GLsizei);
     }
+    for texture in &textures {
+        texture.activate();
+    }
+
     video.start_render()?;
+
+    // let draw_count = 6 * indices_arr.len();
+    let draw_count = 18;
+    // 6 indices for each quad
+    debug!("Draw Count: {}", draw_count);
     for i in 0..60 {
         debug!("Writing frame num: {}", i);
         let mut pixels = vec![0u8; data_len as usize];
@@ -111,12 +111,9 @@ fn main() -> anyhow::Result<()> {
         unsafe {
             gl::ClearColor(red, green, blue, 1.0);
             gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT);
-            for texture in &textures {
-                texture.activate();
-            }
             renderer.program.use_this();
             renderer.vertex_array.bind();
-            gl::DrawElements(gl::TRIANGLES, 6, gl::UNSIGNED_INT, ptr::null());
+            gl::DrawElements(gl::TRIANGLES, draw_count as GLsizei, gl::UNSIGNED_INT, ptr::null());
 
             gl::ReadPixels(
                 0,
