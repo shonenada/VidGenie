@@ -5,15 +5,10 @@ use log::{debug, info};
 
 use vg_gl::{Quad, Texture, Vertex};
 
+#[derive(Default)]
 pub struct ImageClipOffset {
     x: u32,
     y: u32,
-}
-
-impl Default for ImageClipOffset {
-    fn default() -> Self {
-        Self { x: 0, y: 0 }
-    }
 }
 
 pub struct ImageClipTexture {
