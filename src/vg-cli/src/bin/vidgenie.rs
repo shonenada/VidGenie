@@ -57,7 +57,7 @@ fn main() -> anyhow::Result<()> {
     let height = params.output.height;
 
     let _gl_context = init_gl(width, height);
-    let renderer = Renderer::new();
+    let renderer = Renderer::new()?;
 
     let mut quads: Vec<Quad> = Vec::new();
     let mut textures: Vec<Texture> = Vec::new();
