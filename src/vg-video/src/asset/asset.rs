@@ -29,8 +29,8 @@ impl fmt::Display for AssetType {
 #[derive(Debug, Deserialize)]
 pub struct Asset {
     #[serde(rename = "type")]
-    asset_type: AssetType,
-    src: String,
+    pub asset_type: AssetType,
+    pub src: String,
 }
 
 impl Asset {

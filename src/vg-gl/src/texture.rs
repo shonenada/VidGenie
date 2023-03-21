@@ -1,21 +1,25 @@
 use std::path::Path;
 
 use anyhow::Result;
-use gl::types::{GLint, GLsizei, GLuint};
+use gl::types::{GLenum, GLint, GLsizei, GLuint};
 
 pub struct Texture {
     pub id: GLuint,
+    pub unit: GLenum,
 }
 
 impl Texture {
-    pub fn new() -> Self {
+    pub fn new(unit: GLenum) -> Self {
         let id = unsafe {
             let mut id: GLuint = 0;
             gl::GenTextures(1, &mut id);
 
             id
         };
-        Self { id }
+        Self {
+            id,
+            unit,
+        }
     }
 
     pub fn bind(&self) {
@@ -24,16 +28,14 @@ impl Texture {
         }
     }
 
-    pub fn load(&self, path: &Path) -> Result<()> {
+    pub fn load_from_image(&self, img: image::DynamicImage) -> Result<()> {
         self.bind();
         unsafe {
-            let img = image::open(path)?;
-            let format;
-            if img.color().has_alpha() {
-                format = gl::RGBA;
+            let format = if img.color().has_alpha() {
+                gl::RGBA
             } else {
-                format = gl::RGB;
-            }
+                gl::RGB
+            };
 
             gl::TexImage2D(
                 gl::TEXTURE_2D,
@@ -49,6 +51,12 @@ impl Texture {
             gl::GenerateMipmap(gl::TEXTURE_2D);
         }
         Ok(())
+    }
+
+    pub fn load_from_path(&self, path: &Path) -> Result<()> {
+        self.bind();
+        let img = image::open(path)?;
+        self.load_from_image(img)
     }
 
     pub fn set_wrapping(&self, mode: GLuint) {
@@ -67,10 +75,16 @@ impl Texture {
         }
     }
 
-    pub fn activate(&self, unit: GLuint) {
+    pub fn activate(&self) {
         unsafe {
-            gl::ActiveTexture(unit);
+            gl::ActiveTexture(self.unit);
             self.bind();
+        }
+    }
+
+    pub fn bind_unit(&self) {
+        unsafe {
+            gl::BindTextureUnit(self.unit, self.id);
         }
     }
 }

@@ -26,7 +26,6 @@ pub struct Renderer {
 
     #[allow(dead_code)]
     index_buffer: GLBuffer,
-
     #[allow(dead_code)]
     vertex_buffer: GLBuffer,
 }

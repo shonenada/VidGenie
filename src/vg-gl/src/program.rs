@@ -1,7 +1,7 @@
 use std::ffi::CString;
 
 use anyhow::{anyhow, Result};
-use gl::types::{GLint, GLuint};
+use gl::types::{GLint, GLsizei, GLuint};
 
 use crate::error::ProgramError;
 use crate::shader::Shader;
@@ -71,8 +71,29 @@ impl Program {
         self.use_this();
         unsafe {
             let uniform = CString::new(name)?;
-            gl::Uniform1i(gl::GetUniformLocation(self.id, uniform.as_ptr()), value);
+            let location = gl::GetUniformLocation(self.id, uniform.as_ptr());
+            gl::Uniform1i(location, value);
         };
+        Ok(())
+    }
+
+    pub fn set_float_uniform(&self, name: &str, value: f32) -> Result<()> {
+        self.use_this();
+        unsafe {
+            let uniform = CString::new(name)?;
+            let location = gl::GetUniformLocation(self.id, uniform.as_ptr());
+            gl::Uniform1f(location, value);
+        };
+        Ok(())
+    }
+
+    pub fn set_int_array_uniform(&self, name: &str, value: &[i32]) -> Result<()> {
+        self.use_this();
+        unsafe {
+            let uniform = CString::new(name)?;
+            let location = gl::GetUniformLocation(self.id, uniform.as_ptr());
+            gl::Uniform1iv(location, value.len() as GLsizei, value.as_ptr() as *const _);
+        }
         Ok(())
     }
 }

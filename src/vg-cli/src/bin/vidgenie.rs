@@ -5,35 +5,41 @@ use std::ptr;
 
 use clap::Parser;
 use colors_transform::Color;
-use gl::types::GLsizei;
+use gl::types::{GLenum, GLsizei};
 use log::debug;
 
-use vg_common::structs::RenderRequest;
 use vg_gl::{init_gl, Renderer, Texture};
-use vg_video::{Frame, Video};
+use vg_video::{Frame, ImageClipTexture, VideoEncoder};
+use vg_video::RenderRequest;
 
 const VS_SRC: &str = r#"
-#version 330 core
-layout (location = 0) in vec2 position;
-layout (location = 1) in vec2 verTexCoord;
+#version 450 core
+layout (location = 0) in float inTexIdx;
+layout (location = 1) in vec2 position;
+layout (location = 2) in vec2 verTexCoord;
 
 out vec2 texCoord;
+out float texIdxf;
 
 void main() {
     gl_Position = vec4(position, 0.0, 1.0);
     texCoord = verTexCoord;
+    texIdxf = inTexIdx;
 }"#;
 
 const FS_SRC: &str = r#"
-#version 330 core
+#version 450 core
 out vec4 FragColor;
 
 in vec2 texCoord;
+// in float texIdxf;
 
-uniform sampler2D texture0;
+uniform float texIdxf;
+uniform sampler2D textures[32];
 
 void main() {
-    FragColor = texture(texture0, texCoord);
+    int texIdx = int(texIdxf);
+    FragColor = texture(textures[texIdx], texCoord);
 }"#;
 
 #[derive(Parser, Debug)]
@@ -69,11 +75,20 @@ fn main() -> anyhow::Result<()> {
     let _gl_context = init_gl(width, height);
     let renderer = Renderer::new(VS_SRC, FS_SRC)?;
 
-    let texture0 = Texture::new();
-    texture0.set_wrapping(gl::REPEAT);
-    texture0.set_filtering(gl::LINE_LOOP);
-    texture0.load(&Path::new("./resources/wood.jpg"))?; // TODO: replace me
-    renderer.program.set_int_uniform("texture0", 0)?;
+    let mut textures: Vec<Texture> = Vec::new();
+    for track in &params.timeline.tracks {
+        for (idx, clip) in track.clips.iter().enumerate() {
+            let unit = ((gl::TEXTURE0 as usize) + idx) as GLenum;
+            let mut texture = ImageClipTexture::new(&clip.asset.src, unit);
+            texture.load()?;
+            textures.push(texture.into_gl_texture());
+        }
+    }
+    let textures_uniform: Vec<i32> = textures.iter().map(|each| {
+        (each.unit - gl::TEXTURE0) as i32
+    }).collect();
+    renderer.program.set_int_array_uniform("textures", textures_uniform.as_slice())?;
+    renderer.program.set_float_uniform("texIdxf", 0.0)?;
 
     unsafe {
         gl::BlendFunc(gl::SRC_ALPHA, gl::ONE_MINUS_SRC_ALPHA);
@@ -81,7 +96,7 @@ fn main() -> anyhow::Result<()> {
     }
     vg_gst::init_gst();
 
-    let mut video = Video::builder()
+    let mut video = VideoEncoder::builder()
         .width(width)
         .height(height)
         .output_path(&output)
@@ -102,8 +117,10 @@ fn main() -> anyhow::Result<()> {
         let blue = bg.get_blue() / 255.0;
         unsafe {
             gl::ClearColor(red, green, blue, 1.0);
-            gl::Clear(gl::COLOR_BUFFER_BIT);
-            texture0.activate(gl::TEXTURE0);
+            gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT);
+            for texture in &textures {
+                texture.activate();
+            }
             renderer.program.use_this();
             renderer.vertex_array.bind();
             gl::DrawElements(gl::TRIANGLES, 6, gl::UNSIGNED_INT, ptr::null());

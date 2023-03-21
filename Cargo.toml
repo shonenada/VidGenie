@@ -6,7 +6,6 @@ default-run = "vidgenie"
 
 [workspace]
 members = [
-    "src/vg-common",
     "src/vg-cli",
     "src/vg-gl",
     "src/vg-gst",
