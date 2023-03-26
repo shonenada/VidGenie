@@ -10,12 +10,16 @@ pub struct ClipOffset {
     pub y: u32,
 }
 
+fn default_scale() -> f32 { 1.0 }
+
 #[derive(Debug, Deserialize)]
 pub struct Clip {
     pub asset: Asset,
     pub start: f32,
     pub length: f32,
     pub offset: ClipOffset,
+    #[serde(default = "default_scale")]
+    pub scale: f32,
     pub position: String,
 }
 
@@ -25,6 +29,7 @@ impl Into<VideoClip> for Clip {
             asset: self.asset.into(),
             offset: self.offset,
             position: self.position,
+            scale: self.scale,
 
             frame_start: 0,
             frame_end: 0,
@@ -39,6 +44,7 @@ pub struct VideoClip {
     frame_end: u64,
     offset: ClipOffset,
     position: String,
+    scale: f32,
     asset: Box<dyn MediaAsset>,
 }
 

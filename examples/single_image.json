@@ -1,0 +1,30 @@
+{
+    "output": {
+        "format": "mp4",
+        "width": 1280,
+        "height": 720
+    },
+    "timeline": {
+        "background": "#8250df",
+        "tracks": [
+            {
+                "clips": [
+                    {
+                        "asset": {
+                            "type": "image",
+                            "src": "http://localhost:8000/texture.jpg"
+                        },
+                        "start": 0.0,
+                        "length": 3.0,
+                        "offset": {
+                            "x": 0,
+                            "y": 0
+                        },
+                        "scale": 0.5,
+                        "position": "center"
+                    }
+                ]
+            }
+        ]
+    }
+}

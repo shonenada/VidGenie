@@ -20,6 +20,7 @@
                             "x": 0,
                             "y": 0
                         },
+                        "scale": 1.0,
                         "position": "center"
                     },
                     {
@@ -31,21 +32,9 @@
                         "length": 3.0,
                         "offset": {
                             "x": 0,
-                            "y": 200
+                            "y": 0
                         },
-                        "position": "center"
-                    },
-                    {
-                        "asset": {
-                            "type": "image",
-                            "src": "http://localhost:8000/wood.jpg"
-                        },
-                        "start": 0.0,
-                        "length": 3.0,
-                        "offset": {
-                            "x": 200,
-                            "y": 200
-                        },
+                        "scale": 0.5,
                         "position": "center"
                     }
                 ]

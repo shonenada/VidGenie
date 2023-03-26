@@ -1,9 +1,9 @@
 extern crate image as image_crate;
 
 use gl::types::GLenum;
-use log::info;
+use log::{debug, info};
 
-use vg_gl::{Indices, Quad, Texture, Vertex, VERTEX_PER_QUAD};
+use vg_gl::{Indices, Quad, Texture, Transformer, Vertex, VERTEX_PER_QUAD};
 
 #[derive(Default)]
 pub struct ImageClipOffset {
@@ -14,19 +14,25 @@ pub struct ImageClipOffset {
 pub struct ImageClipTexture {
     url: String,
     texture_idx: u32,
+    scale: f32,
 
     texture: Option<Texture>,
     image_width: u32,
     image_height: u32,
     offset: ImageClipOffset,
+    transformer: Transformer,
 }
 
 impl ImageClipTexture {
-    pub fn new(url: &str, idx: u32) -> Self {
+    pub fn new(url: &str, idx: u32, scale: f32) -> Self {
+        let mut transformer = Transformer::default();
+        transformer.set_scale(scale);
         Self {
             url: url.to_string(),
             texture_idx: idx,
+            scale,
 
+            transformer,
             texture: None,
             offset: ImageClipOffset::default(),
             image_width: 0,
@@ -63,21 +69,24 @@ impl ImageClipTexture {
     }
 
     pub fn quad(&self, width: f32, height: f32) -> Quad {
-        let x0_ = self.offset.x as f32;
-        let y0_ = self.offset.y as f32;
-        let x1_ = x0_ + self.image_width as f32;
-        let y1_ = y0_ + self.image_height as f32;
-
-        let (x0, y0) = get_coord(width, height, x0_, y0_);
-        let (x1, y1) = get_coord(width, height, x1_, y1_);
-
         let idx = self.texture_idx as f32;
-        Quad([
-            Vertex([x0, y0], [0.0, 1.0], idx),
-            Vertex([x1, y0], [1.0, 1.0], idx),
-            Vertex([x1, y1], [1.0, 0.0], idx),
-            Vertex([x0, y1], [0.0, 0.0], idx),
-        ])
+        let (x0, y0) = (0.0, 0.0);
+        let (x1, y1) = (self.image_width as f32 / width * 2.0, self.image_height as f32 / height * 2.0);
+
+        // let (x0, y0) = get_coord(width, height, x0_, y0_);
+        // let (x1, y1) = get_coord(width, height, x1_, y1_);
+
+        let p0 = self.transformer.apply_transform(x0, y0, 1.0);
+        let p2 = self.transformer.apply_transform(x1, y1, 1.0);
+
+        let ret = Quad([
+            Vertex([p0.0, p0.1], [0.0, 0.0], idx),
+            Vertex([p2.0, p0.1], [1.0, 0.0], idx),
+            Vertex([p2.0, p2.1], [1.0, 1.0], idx),
+            Vertex([p0.0, p2.1], [0.0, 1.0], idx),
+        ]);
+        debug!("Ret: {:?}", ret);
+        ret
     }
 
     pub fn indices(&self) -> Indices {

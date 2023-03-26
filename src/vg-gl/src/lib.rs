@@ -1,3 +1,5 @@
+extern crate nalgebra_glm as glm;
+
 use glutin::{ContextBuilder, ContextWrapper, PossiblyCurrent};
 use glutin::dpi::LogicalSize;
 use glutin::event_loop::EventLoop;
@@ -9,6 +11,7 @@ pub use crate::quad::Quad;
 pub use crate::renderer::{Indices, Renderer, Vertex};
 pub use crate::shader::Shader;
 pub use crate::texture::Texture;
+pub use crate::transformer::Transformer;
 pub use crate::vertex_array::VertexArray;
 
 mod buffer;
@@ -20,6 +23,7 @@ mod shader;
 mod texture;
 mod vertex_array;
 mod quad;
+mod transformer;
 
 pub const VERTEX_PER_QUAD: usize = 4;
 pub const INDICES_PER_QUAD: usize = 6;
