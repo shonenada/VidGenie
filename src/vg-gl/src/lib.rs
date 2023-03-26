@@ -21,6 +21,9 @@ mod texture;
 mod vertex_array;
 mod quad;
 
+pub const VERTEX_PER_QUAD: usize = 4;
+pub const INDICES_PER_QUAD: usize = 6;
+
 #[allow(dead_code)]
 pub struct GLContext {
     event_loop: EventLoop<()>,

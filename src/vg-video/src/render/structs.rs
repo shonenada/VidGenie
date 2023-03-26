@@ -3,9 +3,7 @@ extern crate image as image_crate;
 use gl::types::GLenum;
 use log::info;
 
-use vg_gl::{Indices, Quad, Texture, Vertex};
-
-const VERTEX_PER_QUAD: i32 = 4;
+use vg_gl::{Indices, Quad, Texture, Vertex, VERTEX_PER_QUAD};
 
 #[derive(Default)]
 pub struct ImageClipOffset {
@@ -83,8 +81,8 @@ impl ImageClipTexture {
     }
 
     pub fn indices(&self) -> Indices {
-        let idx = self.texture_idx as i32;
-        let offset = idx * VERTEX_PER_QUAD;
+        let idx = self.texture_idx as usize;
+        let offset = (idx * VERTEX_PER_QUAD) as i32;
         Indices([
             offset,
             offset + 1,

@@ -1,6 +1,7 @@
-use crate::{GLBuffer, Program, Quad, set_attribute, Shader, VertexArray};
+use crate::{GLBuffer, INDICES_PER_QUAD, Program, Quad, set_attribute, Shader, VertexArray};
 
-type Pos = [f32; 2]; // x, y
+type Pos = [f32; 2];
+// x, y
 type TextureCoords = [f32; 2];
 type TexIdx = f32;
 
@@ -10,7 +11,7 @@ pub struct Vertex(pub Pos, pub TextureCoords, pub TexIdx);
 
 #[derive(Clone, Copy, Debug, Default)]
 #[repr(C, packed)]
-pub struct Indices(pub [i32; 6]);
+pub struct Indices(pub [i32; INDICES_PER_QUAD]);
 
 const VERTEX_SRC: &str = include_str!("shader/vertex.glsl");
 const FRAGMENT_SRC: &str = include_str!("shader/fragment.glsl");

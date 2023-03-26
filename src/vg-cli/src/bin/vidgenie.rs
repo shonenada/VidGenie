@@ -4,10 +4,10 @@ use std::ptr;
 
 use clap::Parser;
 use colors_transform::Color;
-use gl::types::{GLenum, GLsizei};
+use gl::types::GLsizei;
 use log::debug;
 
-use vg_gl::{Indices, init_gl, Quad, Renderer, Texture};
+use vg_gl::{Indices, INDICES_PER_QUAD, init_gl, Quad, Renderer, Texture};
 use vg_video::{Frame, ImageClipTexture, VideoEncoder};
 use vg_video::RenderRequest;
 
@@ -97,7 +97,7 @@ fn main() -> anyhow::Result<()> {
 
     video.start_render()?;
 
-    let draw_count = 6 * indices_arr.len();
+    let draw_count = INDICES_PER_QUAD * indices_arr.len();
     // 6 indices for each quad
     debug!("Draw Count: {}", draw_count);
     for i in 0..60 {
