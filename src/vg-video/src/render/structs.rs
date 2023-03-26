@@ -7,46 +7,54 @@ use vg_gl::{Indices, Quad, Texture, Transformer, Vertex, VERTEX_PER_QUAD};
 
 #[derive(Default)]
 pub struct ImageClipOffset {
-    x: u32,
-    y: u32,
+    x: f32,
+    y: f32,
 }
 
 pub struct ImageClipTexture {
     url: String,
     texture_idx: u32,
-    scale: f32,
 
     texture: Option<Texture>,
-    image_width: u32,
-    image_height: u32,
+    canvas_half_width: f32,
+    canvas_half_height: f32,
+    image_width: f32,
+    image_height: f32,
     offset: ImageClipOffset,
     transformer: Transformer,
 }
 
 impl ImageClipTexture {
-    pub fn new(url: &str, idx: u32, scale: f32) -> Self {
+    pub fn new(url: &str, canvas_width: f32, canvas_height: f32, idx: u32, scale: f32, rotate: f32) -> Self {
         let mut transformer = Transformer::default();
         transformer.set_scale(scale);
+        transformer.set_rotate(rotate);
+
+        let canvas_half_width = canvas_width / 2.0;
+        let canvas_half_height = canvas_height / 2.0;
 
         Self {
             url: url.to_string(),
             texture_idx: idx,
-            scale,
-
+            canvas_half_width,
+            canvas_half_height,
             transformer,
+
             texture: None,
             offset: ImageClipOffset::default(),
-            image_width: 0,
-            image_height: 0,
+            image_width: 0.0,
+            image_height: 0.0,
         }
     }
 
-    pub fn set_x(&mut self, x: u32) {
+    pub fn set_offset(&mut self, x: f32, y: f32) {
         self.offset.x = x;
-    }
-
-    pub fn set_y(&mut self, y: u32) {
         self.offset.y = y;
+        self.transformer.set_translation(
+            self.offset.x / self.canvas_half_width,
+            self.offset.y / self.canvas_half_height,
+            0.0,
+        );
     }
 
     pub fn load(&mut self) -> anyhow::Result<()> {
@@ -54,8 +62,8 @@ impl ImageClipTexture {
         let img_bytes = reqwest::blocking::get(&self.url)?.bytes()?;
         let data = image_crate::load_from_memory(&img_bytes)?;
 
-        self.image_width = data.width();
-        self.image_height = data.height();
+        self.image_width = data.width() as f32;
+        self.image_height = data.height() as f32;
 
         let unit = (gl::TEXTURE0 + self.texture_idx) as GLenum;
         let texture = Texture::new(unit);
@@ -69,19 +77,14 @@ impl ImageClipTexture {
         Ok(())
     }
 
-    pub fn quad(&self, width: f32, height: f32) -> Quad {
+    pub fn quad(&self) -> Quad {
         let idx = self.texture_idx as f32;
-        let (iw, ih) = (self.image_width as f32, self.image_height as f32);
-        let (half_width, half_height) = (width / 2.0, height / 2.0);
 
         let (x0, y0) = (0.0, 0.0);
-        let (x1, y1) = (iw / half_width, ih / half_height);
+        let (x1, y1) = (self.image_width / self.canvas_half_width, self.image_height / self.canvas_half_height);
 
-        let mut trans = self.transformer.clone();
-        trans.set_translation(self.offset.x as f32 / half_width, self.offset.y as f32 / half_height, 0.0);
-
-        let p0 = trans.apply_transform(x0, y0, 1.0);
-        let p2 = trans.apply_transform(x1, y1, 1.0);
+        let p0 = self.transformer.apply_similarity(x0, y0, 1.0);
+        let p2 = self.transformer.apply_similarity(x1, y1, 1.0);
 
         let (p0_x, p0_y) = (p0.0 - 1.0, p0.1 - 1.0);
         let (p2_x, p2_y) = (p2.0 - 1.0, p2.1 - 1.0);

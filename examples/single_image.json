@@ -20,7 +20,8 @@
                             "x": 256,
                             "y": 256
                         },
-                        "scale": 1,
+                        "scale": 1.5,
+                        "rotate": 0,
                         "position": "center"
                     }
                 ]

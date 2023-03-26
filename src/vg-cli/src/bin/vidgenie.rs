@@ -49,12 +49,18 @@ fn main() -> anyhow::Result<()> {
     let mut textures: Vec<Texture> = Vec::new();
     for track in &params.timeline.tracks {
         for (idx, clip) in track.clips.iter().enumerate() {
-            let mut texture = ImageClipTexture::new(&clip.asset.src, idx as u32, clip.scale);
-            texture.set_x(clip.offset.x);
-            texture.set_y(clip.offset.y);
+            let mut texture = ImageClipTexture::new(
+                &clip.asset.src,
+                width as f32,
+                height as f32,
+                idx as u32,
+                clip.scale,
+                clip.rotate
+            );
+            texture.set_offset(clip.offset.x, clip.offset.y);
             texture.load()?;
 
-            let quad = texture.quad(width as f32, height as f32);
+            let quad = texture.quad();
             quads.push(quad);
             let indices = texture.indices();
             indices_arr.push(indices);

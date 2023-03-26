@@ -6,11 +6,13 @@ use crate::asset::{Asset, MediaAsset};
 
 #[derive(Debug, Deserialize)]
 pub struct ClipOffset {
-    pub x: u32,
-    pub y: u32,
+    pub x: f32,
+    pub y: f32,
 }
 
 fn default_scale() -> f32 { 1.0 }
+
+fn default_rotate() -> f32 { 0.0 }
 
 #[derive(Debug, Deserialize)]
 pub struct Clip {
@@ -20,6 +22,8 @@ pub struct Clip {
     pub offset: ClipOffset,
     #[serde(default = "default_scale")]
     pub scale: f32,
+    #[serde(default = "default_rotate")]
+    pub rotate: f32,
     pub position: String,
 }
 
