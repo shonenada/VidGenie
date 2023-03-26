@@ -27,6 +27,7 @@ impl ImageClipTexture {
     pub fn new(url: &str, idx: u32, scale: f32) -> Self {
         let mut transformer = Transformer::default();
         transformer.set_scale(scale);
+
         Self {
             url: url.to_string(),
             texture_idx: idx,
@@ -70,23 +71,27 @@ impl ImageClipTexture {
 
     pub fn quad(&self, width: f32, height: f32) -> Quad {
         let idx = self.texture_idx as f32;
+        let (iw, ih) = (self.image_width as f32, self.image_height as f32);
+        let (half_width, half_height) = (width / 2.0, height / 2.0);
+
         let (x0, y0) = (0.0, 0.0);
-        let (x1, y1) = (self.image_width as f32 / width * 2.0, self.image_height as f32 / height * 2.0);
+        let (x1, y1) = (iw / half_width, ih / half_height);
 
-        // let (x0, y0) = get_coord(width, height, x0_, y0_);
-        // let (x1, y1) = get_coord(width, height, x1_, y1_);
+        let mut trans = self.transformer.clone();
+        trans.set_translation(self.offset.x as f32 / half_width, self.offset.y as f32 / half_height, 0.0);
 
-        let p0 = self.transformer.apply_transform(x0, y0, 1.0);
-        let p2 = self.transformer.apply_transform(x1, y1, 1.0);
+        let p0 = trans.apply_transform(x0, y0, 1.0);
+        let p2 = trans.apply_transform(x1, y1, 1.0);
 
-        let ret = Quad([
-            Vertex([p0.0, p0.1], [0.0, 0.0], idx),
-            Vertex([p2.0, p0.1], [1.0, 0.0], idx),
-            Vertex([p2.0, p2.1], [1.0, 1.0], idx),
-            Vertex([p0.0, p2.1], [0.0, 1.0], idx),
-        ]);
-        debug!("Ret: {:?}", ret);
-        ret
+        let (p0_x, p0_y) = (p0.0 - 1.0, p0.1 - 1.0);
+        let (p2_x, p2_y) = (p2.0 - 1.0, p2.1 - 1.0);
+
+        Quad([
+            Vertex([p0_x, p0_y], [0.0, 0.0], idx),
+            Vertex([p2_x, p0_y], [1.0, 0.0], idx),
+            Vertex([p2_x, p2_y], [1.0, 1.0], idx),
+            Vertex([p0_x, p2_y], [0.0, 1.0], idx),
+        ])
     }
 
     pub fn indices(&self) -> Indices {
@@ -105,23 +110,4 @@ impl ImageClipTexture {
     pub fn into_gl_texture(self) -> Texture {
         self.texture.unwrap()
     }
-}
-
-fn get_coord(width: f32, height: f32, x: f32, y: f32) -> (f32, f32) {
-    let half_width = width / 2.0;
-    let half_height = height / 2.0;
-
-    let x_: f32 = if x < half_width {
-        ((half_width - x) / half_width) * -1.0
-    } else {
-        (x - half_width) / half_width
-    };
-
-    let y_: f32 = if y < half_height {
-        ((half_height - y) / half_height) * -1.0
-    } else {
-        (y - half_height) / half_height
-    };
-
-    (x_, y_)
 }

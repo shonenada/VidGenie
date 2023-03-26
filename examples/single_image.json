@@ -17,10 +17,10 @@
                         "start": 0.0,
                         "length": 3.0,
                         "offset": {
-                            "x": 0,
-                            "y": 0
+                            "x": 256,
+                            "y": 256
                         },
-                        "scale": 0.5,
+                        "scale": 1,
                         "position": "center"
                     }
                 ]

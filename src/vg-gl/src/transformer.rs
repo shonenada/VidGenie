@@ -1,5 +1,6 @@
 use glm::TMat4;
 use log::debug;
+use nalgebra::Point3;
 
 #[derive(Clone)]
 struct Scale {
@@ -55,20 +56,23 @@ impl Transformer {
         trans = glm::scale(&trans, &scale_vec);
 
         let translation_vec = glm::vec3(self.translation.x, self.translation.y, 0.0);
-        trans = glm::translate(&trans, &translation_vec);
+        debug!("translation: {:?}", translation_vec);
+        let mut trans = trans.append_translation(&translation_vec);
+        // trans = glm::translate(&trans, &translation_vec);
 
         let rotation_vec = glm::vec3(0.0, 0.0, 1.0);
         trans = glm::rotate(&trans, self.rotation.angle, &rotation_vec);
-
-        debug!("Transform: {}", trans);
 
         trans
     }
 
     pub fn apply_transform(&self, x: f32, y: f32, z: f32) -> (f32, f32, f32) {
-        let p = glm::vec3(x, y, z);
+        let p = Point3::new(x, y, z);
+        debug!("Origin p: {:?}", p);
         let trans = self.get_transform_mat();
-        let r = trans.transform_vector(&p);
+        debug!("traomsform : {:?}", trans);
+        let r = trans.transform_point(&p);
+        debug!("Result: {:?}", r);
         (r.x, r.y, r.z)
     }
 }
