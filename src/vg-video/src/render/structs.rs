@@ -1,7 +1,7 @@
 extern crate image as image_crate;
 
 use gl::types::GLenum;
-use log::{debug, info};
+use log::info;
 
 use vg_gl::{Indices, Quad, Texture, Transformer, Vertex, VERTEX_PER_QUAD};
 
@@ -16,8 +16,8 @@ pub struct ImageClipTexture {
     texture_idx: u32,
 
     texture: Option<Texture>,
-    canvas_half_width: f32,
-    canvas_half_height: f32,
+    canvas_width: f32,
+    canvas_height: f32,
     image_width: f32,
     image_height: f32,
     offset: ImageClipOffset,
@@ -30,14 +30,11 @@ impl ImageClipTexture {
         transformer.set_scale(scale);
         transformer.set_rotate(rotate);
 
-        let canvas_half_width = canvas_width / 2.0;
-        let canvas_half_height = canvas_height / 2.0;
-
         Self {
             url: url.to_string(),
             texture_idx: idx,
-            canvas_half_width,
-            canvas_half_height,
+            canvas_width,
+            canvas_height,
             transformer,
 
             texture: None,
@@ -55,11 +52,6 @@ impl ImageClipTexture {
             self.offset.y,
             0.0,
         );
-        // self.transformer.set_translation(
-        //     self.offset.x / self.canvas_half_width,
-        //     self.offset.y / self.canvas_half_height,
-        //     0.0,
-        // );
     }
 
     pub fn load(&mut self) -> anyhow::Result<()> {
@@ -91,10 +83,10 @@ impl ImageClipTexture {
         let mid_x = x0 + (x1 - x0) / 2.0;
         let mid_y = y0 + (y1 - y0) / 2.0;
 
-        let p0 = self.transformer.apply_similarity(x0, y0, 1.0, mid_x, mid_y);
-        let p1 = self.transformer.apply_similarity(x1, y0, 1.0, mid_x, mid_y);
-        let p2 = self.transformer.apply_similarity(x1, y1, 1.0, mid_x, mid_y);
-        let p3 = self.transformer.apply_similarity(x0, y1, 1.0, mid_x, mid_y);
+        let p0 = self.transformer.apply_similarity(x0, y0, 1.0, mid_x, mid_y, self.canvas_width, self.canvas_height);
+        let p1 = self.transformer.apply_similarity(x1, y0, 1.0, mid_x, mid_y, self.canvas_width, self.canvas_height);
+        let p2 = self.transformer.apply_similarity(x1, y1, 1.0, mid_x, mid_y, self.canvas_width, self.canvas_height);
+        let p3 = self.transformer.apply_similarity(x0, y1, 1.0, mid_x, mid_y, self.canvas_width, self.canvas_height);
 
         let (p0_x, p0_y) = (p0.0, p0.1);
         let (p1_x, p1_y) = (p1.0, p1.1);

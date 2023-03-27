@@ -1,8 +1,7 @@
 use std::f32::consts::PI;
 
-use glm::{Mat4, TMat4};
-use log::debug;
-use nalgebra::{Point2, Point3, Similarity2, Similarity3, Vector2, Vector3, Vector4};
+use glm::Mat4;
+use nalgebra::Point3;
 
 #[derive(Clone)]
 struct Scale {
@@ -21,12 +20,6 @@ struct Translation {
     x: f32,
     y: f32,
     z: f32,
-}
-
-impl Into<Vector2<f32>> for Translation {
-    fn into(self) -> Vector2<f32> {
-        Vector2::new(self.x, self.y)
-    }
 }
 
 #[derive(Default, Clone)]
@@ -57,24 +50,6 @@ impl Transformer {
         self.translation.z = z;
     }
 
-    pub fn get_similar_mat_(&self) -> Similarity2<f32> {
-        let translation = self.translation.clone();
-        let scale = self.scale.scale_x;
-
-        Similarity2::new(
-            translation.into(),
-            0.0,
-            scale,
-        )
-    }
-
-    pub fn apply_similarity_(&self, x: f32, y: f32, _z: f32) -> (f32, f32) {
-        let p = Point2::new(x, y);
-        let trans = self.get_similar_mat_();
-        let ret: Point2<f32> = trans * p;
-        (ret.x, ret.y)
-    }
-
     pub fn get_similar_mat(&self, mid_x: f32, mid_y: f32) -> Mat4 {
         let mut trans = Mat4::identity();
         trans = glm::translate(&trans, &glm::vec3(self.translation.x, self.translation.y, 0.0));
@@ -91,8 +66,10 @@ impl Transformer {
         trans
     }
 
-    pub fn apply_similarity(&self, x: f32, y: f32, z: f32, mid_x: f32, mid_y: f32) -> (f32, f32) {
-        let proj = glm::ortho(0.0, 1280.0, 0.0, 720.0, -1.0, 1.0);
+    // TODO: Simplify
+    #[allow(clippy::too_many_arguments)]
+    pub fn apply_similarity(&self, x: f32, y: f32, z: f32, mid_x: f32, mid_y: f32, width: f32, height: f32) -> (f32, f32) {
+        let proj = glm::ortho(0.0, width, 0.0, height, -1.0, 1.0);
         let view = Mat4::identity();
         let trans = self.get_similar_mat(mid_x, mid_y);
 
