@@ -1,8 +1,7 @@
 use std::f32::consts::PI;
 
-use glm::TMat4;
-use log::debug;
-use nalgebra::{Point3, Similarity3, Vector3};
+use glm::Mat4;
+use nalgebra::Point3;
 
 #[derive(Clone)]
 struct Scale {
@@ -23,21 +22,9 @@ struct Translation {
     z: f32,
 }
 
-impl Into<Vector3<f32>> for Translation {
-    fn into(self) -> Vector3<f32> {
-        Vector3::new(self.x, self.y, self.z)
-    }
-}
-
 #[derive(Default, Clone)]
 struct Rotation {
     angle: f32,
-}
-
-impl Into<Vector3<f32>> for Rotation {
-    fn into(self) -> Vector3<f32> {
-        Vector3::new(self.angle * PI / 180.0, 0.0, 0.0)
-    }
 }
 
 #[derive(Default, Clone)]
@@ -63,46 +50,32 @@ impl Transformer {
         self.translation.z = z;
     }
 
-    pub fn get_similar_mat(&self) -> Similarity3<f32> {
-        let translation = self.translation.clone();
-        let rotate = self.rotation.clone();
-        let scale = self.scale.scale_x;
+    pub fn get_similar_mat(&self, mid_x: f32, mid_y: f32) -> Mat4 {
+        let mut trans = Mat4::identity();
+        trans = glm::translate(&trans, &glm::vec3(self.translation.x, self.translation.y, 0.0));
 
-        Similarity3::new(
-            translation.into(),
-            rotate.into(),
-            scale,
-        )
-    }
+        trans = glm::scale(&trans, &glm::vec3(self.scale.scale_x, self.scale.scale_y, 1.0));
 
-    pub fn apply_similarity(&self, x: f32, y: f32, z: f32) -> (f32, f32, f32) {
-        let p = Point3::new(x, y, z);
-        let trans = self.get_similar_mat();
-        let ret: Point3<f32> = trans * p;
-        (ret.x, ret.y, ret.z)
-    }
-    /// Keep here for allowing any transform.
-    pub fn get_transform_mat(&self) -> glm::Mat4 {
-        let mut trans: TMat4<f32> = glm::convert(glm::Mat4::identity());
-
-        let scale_vec = glm::vec3(self.scale.scale_x, self.scale.scale_y, 1.0);
-        trans = glm::scale(&trans, &scale_vec);
-
-        let translation_vec = glm::vec3(self.translation.x, self.translation.y, 0.0);
-        // trans = trans.append_translation(&translation_vec);
-        trans = glm::translate(&trans, &translation_vec);
-
-        let rotation_vec = glm::vec3(0.0, 0.0, 1.0);
-        trans = glm::rotate(&trans, self.rotation.angle, &rotation_vec);
+        if self.rotation.angle > 0.0 {
+            let rad = self.rotation.angle * (PI / 180.0);
+            trans = glm::translate(&trans, &glm::vec3(mid_x, mid_y, 0.0));
+            trans = glm::rotate(&trans, rad, &glm::vec3(0.0, 0.0, 1.0));
+            trans = glm::translate(&trans, &glm::vec3(-mid_x, -mid_y, 0.0));
+        }
 
         trans
     }
 
-    /// Keep here for allowing scale for x and y separately.
-    pub fn apply_transform_with_axis_scale(&self, x: f32, y: f32, z: f32) -> (f32, f32, f32) {
+    // TODO: Simplify
+    #[allow(clippy::too_many_arguments)]
+    pub fn apply_similarity(&self, x: f32, y: f32, z: f32, mid_x: f32, mid_y: f32, width: f32, height: f32) -> (f32, f32) {
+        let proj = glm::ortho(0.0, width, 0.0, height, -1.0, 1.0);
+        let view = Mat4::identity();
+        let trans = self.get_similar_mat(mid_x, mid_y);
+
+        let mat = proj * view * trans;
         let p = Point3::new(x, y, z);
-        let trans = self.get_transform_mat();
-        let r = trans.transform_point(&p);
-        (r.x, r.y, r.z)
+        let ret = mat.transform_point(&p);
+        (ret.x, ret.y)
     }
 }
