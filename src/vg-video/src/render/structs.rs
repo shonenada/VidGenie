@@ -80,14 +80,20 @@ impl ImageClipTexture {
     pub fn quad(&self) -> Quad {
         let idx = self.texture_idx as f32;
 
+        // let (half_iw, half_ih) = (self.image_width / 2.0, self.image_height / 2.0);
+        // let (x0, y0) = (-half_iw / self.canvas_half_width, -half_ih / self.canvas_half_width);
+        // let (x1, y1) = (half_iw / self.canvas_half_width, half_ih / self.canvas_half_height);
+
         let (x0, y0) = (0.0, 0.0);
         let (x1, y1) = (self.image_width / self.canvas_half_width, self.image_height / self.canvas_half_height);
 
         let p0 = self.transformer.apply_similarity(x0, y0, 1.0);
         let p2 = self.transformer.apply_similarity(x1, y1, 1.0);
 
-        let (p0_x, p0_y) = (p0.0 - 1.0, p0.1 - 1.0);
-        let (p2_x, p2_y) = (p2.0 - 1.0, p2.1 - 1.0);
+        let (p0_x, p0_y) = (p0.0, p0.1);
+        let (p2_x, p2_y) = (p2.0, p2.1);
+        // let (p0_x, p0_y) = (p0.0 - 1.0, p0.1 - 1.0);
+        // let (p2_x, p2_y) = (p2.0 - 1.0, p2.1 - 1.0);
 
         Quad([
             Vertex([p0_x, p0_y], [0.0, 0.0], idx),

@@ -4,7 +4,7 @@ use std::ptr;
 
 use clap::Parser;
 use colors_transform::Color;
-use gl::types::{GLint, GLsizei};
+use gl::types::GLsizei;
 use log::debug;
 
 use vg_gl::{Indices, INDICES_PER_QUAD, init_gl, Quad, Renderer, Texture};
@@ -55,7 +55,7 @@ fn main() -> anyhow::Result<()> {
                 height as f32,
                 idx as u32,
                 clip.scale,
-                clip.rotate
+                clip.rotate,
             );
             texture.set_offset(clip.offset.x, clip.offset.y);
             texture.load()?;
