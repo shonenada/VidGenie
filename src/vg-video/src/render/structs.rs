@@ -51,10 +51,15 @@ impl ImageClipTexture {
         self.offset.x = x;
         self.offset.y = y;
         self.transformer.set_translation(
-            self.offset.x / self.canvas_half_width,
-            self.offset.y / self.canvas_half_height,
+            self.offset.x,
+            self.offset.y,
             0.0,
         );
+        // self.transformer.set_translation(
+        //     self.offset.x / self.canvas_half_width,
+        //     self.offset.y / self.canvas_half_height,
+        //     0.0,
+        // );
     }
 
     pub fn load(&mut self) -> anyhow::Result<()> {
@@ -80,26 +85,27 @@ impl ImageClipTexture {
     pub fn quad(&self) -> Quad {
         let idx = self.texture_idx as f32;
 
-        // let (half_iw, half_ih) = (self.image_width / 2.0, self.image_height / 2.0);
-        // let (x0, y0) = (-half_iw / self.canvas_half_width, -half_ih / self.canvas_half_width);
-        // let (x1, y1) = (half_iw / self.canvas_half_width, half_ih / self.canvas_half_height);
-
         let (x0, y0) = (0.0, 0.0);
-        let (x1, y1) = (self.image_width / self.canvas_half_width, self.image_height / self.canvas_half_height);
+        let (x1, y1) = (self.image_width, self.image_height);
 
-        let p0 = self.transformer.apply_similarity(x0, y0, 1.0);
-        let p2 = self.transformer.apply_similarity(x1, y1, 1.0);
+        let mid_x = x0 + (x1 - x0) / 2.0;
+        let mid_y = y0 + (y1 - y0) / 2.0;
+
+        let p0 = self.transformer.apply_similarity(x0, y0, 1.0, mid_x, mid_y);
+        let p1 = self.transformer.apply_similarity(x1, y0, 1.0, mid_x, mid_y);
+        let p2 = self.transformer.apply_similarity(x1, y1, 1.0, mid_x, mid_y);
+        let p3 = self.transformer.apply_similarity(x0, y1, 1.0, mid_x, mid_y);
 
         let (p0_x, p0_y) = (p0.0, p0.1);
+        let (p1_x, p1_y) = (p1.0, p1.1);
         let (p2_x, p2_y) = (p2.0, p2.1);
-        // let (p0_x, p0_y) = (p0.0 - 1.0, p0.1 - 1.0);
-        // let (p2_x, p2_y) = (p2.0 - 1.0, p2.1 - 1.0);
+        let (p3_x, p3_y) = (p3.0, p3.1);
 
         Quad([
             Vertex([p0_x, p0_y], [0.0, 0.0], idx),
-            Vertex([p2_x, p0_y], [1.0, 0.0], idx),
+            Vertex([p1_x, p1_y], [1.0, 0.0], idx),
             Vertex([p2_x, p2_y], [1.0, 1.0], idx),
-            Vertex([p0_x, p2_y], [0.0, 1.0], idx),
+            Vertex([p3_x, p3_y], [0.0, 1.0], idx),
         ])
     }
 
