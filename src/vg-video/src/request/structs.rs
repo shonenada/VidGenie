@@ -4,10 +4,6 @@ use serde::de::Error;
 
 use crate::request::clip::Clip;
 
-pub enum ParseError {
-    Message(String),
-}
-
 #[derive(Debug, Deserialize)]
 pub struct RenderOutput {
     pub format: String,

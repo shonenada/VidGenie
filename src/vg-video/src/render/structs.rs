@@ -63,10 +63,10 @@ impl ImageClipTexture {
         self.image_height = data.height() as f32;
 
         let unit = (gl::TEXTURE0 + self.texture_idx) as GLenum;
-        let texture = Texture::new(unit);
-        texture.set_wrapping(gl::REPEAT);
-        texture.set_filtering(gl::LINE_LOOP);
+        let texture = Texture::new(gl::TEXTURE_2D, unit);
         texture.load_from_image(data)?;
+        texture.set_wrapping(gl::REPEAT);
+        texture.set_filtering(gl::LINEAR);
         texture.bind_unit();
 
         self.texture = Some(texture);
@@ -116,5 +116,9 @@ impl ImageClipTexture {
 
     pub fn into_gl_texture(self) -> Texture {
         self.texture.unwrap()
+    }
+
+    pub fn texture(&self) -> Option<Texture> {
+        self.texture.clone()
     }
 }

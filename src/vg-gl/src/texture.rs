@@ -1,31 +1,42 @@
 use std::path::Path;
+use std::ptr;
 
 use anyhow::Result;
 use gl::types::{GLenum, GLint, GLsizei, GLuint};
-use log::debug;
 
+#[derive(Clone)]
 pub struct Texture {
     pub id: GLuint,
     pub unit: GLenum,
+    pub target: GLenum,
 }
 
 impl Texture {
-    pub fn new(unit: GLenum) -> Self {
-        let id = unsafe {
-            let mut id: GLuint = 0;
+    pub fn new(target: GLenum, unit: GLenum) -> Self {
+        let mut id: GLuint = 0;
+        unsafe {
             gl::GenTextures(1, &mut id);
-
-            id
         };
         Self {
             id,
             unit,
+            target,
         }
+    }
+
+    pub fn new_without_unit(target: GLenum) -> Self {
+        Self::new(target, 0)
     }
 
     pub fn bind(&self) {
         unsafe {
-            gl::BindTexture(gl::TEXTURE_2D, self.id);
+            gl::BindTexture(self.target, self.id);
+        }
+    }
+
+    pub fn unbind(&self) {
+        unsafe {
+            gl::BindTexture(self.target, 0);
         }
     }
 
@@ -39,7 +50,7 @@ impl Texture {
             };
 
             gl::TexImage2D(
-                gl::TEXTURE_2D,
+                self.target,
                 0,
                 gl::RGBA as GLint,
                 img.width() as GLsizei,
@@ -55,29 +66,44 @@ impl Texture {
     }
 
     pub fn load_from_path(&self, path: &Path) -> Result<()> {
-        self.bind();
         let img = image::open(path)?;
         self.load_from_image(img)
+    }
+
+    pub fn load_for_framebuffer(&self, width: i32, height: i32) {
+        self.bind();
+        unsafe {
+            gl::TexImage2D(
+                self.target,
+                0,
+                gl::RGBA as GLint,
+                width as GLsizei,
+                height as GLsizei,
+                0,
+                gl::RGB as GLenum,
+                gl::UNSIGNED_BYTE,
+                ptr::null(),
+            )
+        }
     }
 
     pub fn set_wrapping(&self, mode: GLuint) {
         self.bind();
         unsafe {
-            gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_S, mode as GLint);
-            gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_T, mode as GLint);
+            gl::TexParameteri(self.target, gl::TEXTURE_WRAP_S, mode as GLint);
+            gl::TexParameteri(self.target, gl::TEXTURE_WRAP_T, mode as GLint);
         }
     }
 
     pub fn set_filtering(&self, mode: GLuint) {
         self.bind();
         unsafe {
-            gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MIN_FILTER, mode as GLint);
-            gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MAG_FILTER, mode as GLint);
+            gl::TexParameteri(self.target, gl::TEXTURE_MIN_FILTER, mode as GLint);
+            gl::TexParameteri(self.target, gl::TEXTURE_MAG_FILTER, mode as GLint);
         }
     }
 
     pub fn activate(&self) {
-        debug!("Activate texture {}", self.unit);
         unsafe {
             gl::ActiveTexture(self.unit);
             self.bind();
@@ -87,6 +113,21 @@ impl Texture {
     pub fn bind_unit(&self) {
         unsafe {
             gl::BindTextureUnit(self.unit, self.id);
+        }
+    }
+
+    pub fn multi_sample(&self, sample: GLsizei, width: i32, height: i32) {
+        unsafe {
+            self.bind();
+            gl::TexImage2DMultisample(
+                self.target,
+                sample,
+                gl::RGBA,
+                width as GLsizei,
+                height as GLsizei,
+                gl::TRUE,
+            );
+            self.unbind();
         }
     }
 }

@@ -1,8 +1,8 @@
 {
     "output": {
         "format": "mp4",
-        "width": 1280,
-        "height": 720
+        "width": 1920,
+        "height": 1080
     },
     "timeline": {
         "background": "#8250df",
@@ -17,11 +17,11 @@
                         "start": 0.0,
                         "length": 3.0,
                         "offset": {
-                            "x": 256,
-                            "y": 256
+                            "x": 128,
+                            "y": 128
                         },
-                        "scale": 1.5,
-                        "rotate": 0,
+                        "scale": 1.0,
+                        "rotate": 50,
                         "position": "center"
                     }
                 ]
