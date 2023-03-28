@@ -117,7 +117,7 @@ impl Texture {
             gl::TexImage2DMultisample(
                 self.target,
                 sample,
-                gl::RGBA,
+                gl::RGB,
                 width as GLsizei,
                 height as GLsizei,
                 gl::TRUE,

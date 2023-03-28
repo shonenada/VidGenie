@@ -4,7 +4,7 @@ use std::ptr;
 
 use clap::Parser;
 use colors_transform::Color;
-use gl::types::GLsizei;
+use gl::types::{GLint, GLsizei};
 use log::debug;
 
 use vg_gl::{FrameBuffer, Indices, INDICES_PER_QUAD, init_gl, Quad, RenderBuffer, Renderer, Texture};
@@ -44,10 +44,6 @@ fn main() -> anyhow::Result<()> {
     let _gl_context = init_gl(width, height);
     let renderer = Renderer::new()?;
 
-    let framebuffer = FrameBuffer::new(
-        gl::COLOR_ATTACHMENT0);
-    framebuffer.bind();
-
     let mut indices_arr: Vec<Indices> = Vec::new();
     let mut quads: Vec<Quad> = Vec::new();
     let mut textures: Vec<Texture> = Vec::new();
@@ -84,28 +80,49 @@ fn main() -> anyhow::Result<()> {
     renderer.set_attrs()?;
     renderer.program.set_int_array_uniform("textures", textures_uniform.as_slice())?;
 
-    let color_texture = Texture::new(gl::TEXTURE31, gl::TEXTURE_2D);
-    color_texture.load_for_framebuffer(width as i32, height as i32);
-    color_texture.set_filtering(gl::LINEAR);
+    let samples = 4;
+    let framebuffer = FrameBuffer::new(gl::COLOR_ATTACHMENT0);
+    framebuffer.bind();
+    let color_texture = Texture::new(gl::TEXTURE31, gl::TEXTURE_2D_MULTISAMPLE);
+    color_texture.bind();
+    color_texture.multi_sample_2d(samples, width as i32, height as i32);
+    color_texture.unbind();
     framebuffer.attach_texture(&color_texture);
 
     let renderbuffer = RenderBuffer::new();
     renderbuffer.bind();
-    renderbuffer.storage(width as i32, height as i32);
-    framebuffer.render(&renderbuffer);
+    renderbuffer.storage_multi_sample(samples, width as i32, height as i32);
+    renderbuffer.unbind();
+    framebuffer.bind_renderbuffer(&renderbuffer);
     match framebuffer.check_status() {
         Ok(_) => {}
         Err(err) => {
             eprintln!("framebuffer error: {}", err);
         }
     }
-    // renderbuffer.unbind();
     framebuffer.unbind();
+
+    let result_framebuffer = FrameBuffer::new(gl::COLOR_ATTACHMENT0);
+    result_framebuffer.bind();
+
+    let screen_texture = Texture::new(0, gl::TEXTURE_2D);
+    screen_texture.bind();
+    screen_texture.load_for_framebuffer(width as i32, height as i32);
+    screen_texture.set_filtering(gl::LINEAR);
+    result_framebuffer.attach_texture(&screen_texture);
+
+    match result_framebuffer.check_status() {
+        Ok(_) => {}
+        Err(err) => {
+            eprintln!("framebuffer error: {}", err);
+        }
+    }
+    result_framebuffer.unbind();
 
     unsafe {
         gl::Enable(gl::BLEND);
         gl::BlendFunc(gl::SRC_ALPHA, gl::ONE_MINUS_SRC_ALPHA);
-        // gl::Enable(gl::MULTISAMPLE);
+        gl::Enable(gl::MULTISAMPLE);
         gl::Viewport(0, 0, width as GLsizei, height as GLsizei);
     }
     vg_gst::init_gst();
@@ -144,8 +161,24 @@ fn main() -> anyhow::Result<()> {
 
             gl::DrawElements(gl::TRIANGLES, draw_count as GLsizei, gl::UNSIGNED_INT, ptr::null());
 
-            gl::ReadBuffer(gl::COLOR_ATTACHMENT0);
-            gl::PixelStorei(gl::PACK_ALIGNMENT, 3);
+            gl::BindFramebuffer(gl::READ_FRAMEBUFFER, framebuffer.id);
+            gl::BindFramebuffer(gl::DRAW_FRAMEBUFFER, result_framebuffer.id);
+            gl::BlitFramebuffer(
+                0,
+                0,
+                width as GLint,
+                height as GLint,
+                0,
+                0,
+                width as GLint,
+                height as GLint,
+                gl::COLOR_BUFFER_BIT,
+                gl::NEAREST);
+
+            result_framebuffer.bind();
+
+            // gl::ReadBuffer(gl::COLOR_ATTACHMENT0);
+            // gl::PixelStorei(gl::PACK_ALIGNMENT, 3);
             gl::ReadPixels(
                 0,
                 0,

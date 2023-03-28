@@ -57,7 +57,6 @@ impl FrameBuffer {
 
     pub fn attach_texture(&self, tex: &Texture) {
         unsafe {
-            tex.bind();
             gl::FramebufferTexture2D(
                 gl::FRAMEBUFFER,
                 self.attachment,
@@ -69,7 +68,7 @@ impl FrameBuffer {
         }
     }
 
-    pub fn render(&self, render_buffer: &RenderBuffer) {
+    pub fn bind_renderbuffer(&self, render_buffer: &RenderBuffer) {
         unsafe {
             gl::FramebufferRenderbuffer(
                 gl::FRAMEBUFFER,
