@@ -41,13 +41,15 @@ impl RenderBuffer {
 
     pub fn storage_multi_sample(&self, samples: GLsizei, width: GLsizei, height: GLsizei) {
         unsafe {
+            self.bind();
             gl::RenderbufferStorageMultisample(
                 gl::RENDERBUFFER,
                 samples,
                 gl::DEPTH24_STENCIL8,
                 width,
                 height,
-            )
+            );
+            self.unbind();
         }
     }
 }

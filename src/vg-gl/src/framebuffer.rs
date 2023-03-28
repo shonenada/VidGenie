@@ -1,7 +1,5 @@
-use std::fmt::Error;
-
 use anyhow::anyhow;
-use gl::types::{GLenum, GLint, GLuint};
+use gl::types::{GLenum, GLuint};
 
 use crate::RenderBuffer;
 use crate::Texture;
@@ -64,7 +62,6 @@ impl FrameBuffer {
                 tex.id,
                 0,
             );
-            tex.unbind();
         }
     }
 

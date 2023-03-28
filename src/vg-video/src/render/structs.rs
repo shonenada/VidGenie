@@ -63,10 +63,7 @@ impl ImageClipTexture {
         self.image_height = data.height() as f32;
 
         let unit = (gl::TEXTURE0 + self.texture_idx) as GLenum;
-        // let texture = Texture::new(unit, gl::TEXTURE_2D_MULTISAMPLE);
-        // texture.multi_sample_2d(4, self.canvas_width, self.canvas_height);
-        // texture.load_for_framebuffer(self.canvas_width as i32, self.canvas_height as i32);
-        let texture = Texture::new(unit, gl::TEXTURE_2D);
+        let texture = Texture::new(gl::TEXTURE_2D, unit);
         texture.load_from_image(data)?;
         texture.set_wrapping(gl::REPEAT);
         texture.set_filtering(gl::LINEAR);

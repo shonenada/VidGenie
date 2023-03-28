@@ -12,7 +12,7 @@ pub struct Texture {
 }
 
 impl Texture {
-    pub fn new(unit: GLenum, target: GLenum) -> Self {
+    pub fn new(target: GLenum, unit: GLenum) -> Self {
         let mut id: GLuint = 0;
         unsafe {
             gl::GenTextures(1, &mut id);
@@ -22,6 +22,10 @@ impl Texture {
             unit,
             target,
         }
+    }
+
+    pub fn new_without_unit(target: GLenum) -> Self {
+        Self::new(target, 0)
     }
 
     pub fn bind(&self) {
@@ -72,7 +76,7 @@ impl Texture {
             gl::TexImage2D(
                 self.target,
                 0,
-                gl::RGB as GLint,
+                gl::RGBA as GLint,
                 width as GLsizei,
                 height as GLsizei,
                 0,
@@ -112,16 +116,18 @@ impl Texture {
         }
     }
 
-    pub fn multi_sample_2d(&self, sample: GLsizei, width: i32, height: i32) {
+    pub fn multi_sample(&self, sample: GLsizei, width: i32, height: i32) {
         unsafe {
+            self.bind();
             gl::TexImage2DMultisample(
                 self.target,
                 sample,
-                gl::RGB,
+                gl::RGBA,
                 width as GLsizei,
                 height as GLsizei,
                 gl::TRUE,
             );
+            self.unbind();
         }
     }
 }
