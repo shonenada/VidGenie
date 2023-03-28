@@ -6,8 +6,10 @@ use glutin::event_loop::EventLoop;
 use glutin::window::{Window, WindowBuilder};
 
 pub use crate::buffer::GLBuffer;
+pub use crate::framebuffer::FrameBuffer;
 pub use crate::program::Program;
 pub use crate::quad::Quad;
+pub use crate::renderbuffer::RenderBuffer;
 pub use crate::renderer::{Indices, Renderer, Vertex};
 pub use crate::shader::Shader;
 pub use crate::texture::Texture;
@@ -16,14 +18,16 @@ pub use crate::vertex_array::VertexArray;
 
 mod buffer;
 mod error;
+mod framebuffer;
 mod macros;
 mod program;
+mod quad;
+mod renderbuffer;
 mod renderer;
 mod shader;
 mod texture;
-mod vertex_array;
-mod quad;
 mod transformer;
+mod vertex_array;
 
 pub const VERTEX_PER_QUAD: usize = 4;
 pub const INDICES_PER_QUAD: usize = 6;

@@ -7,7 +7,7 @@ use colors_transform::Color;
 use gl::types::GLsizei;
 use log::debug;
 
-use vg_gl::{Indices, INDICES_PER_QUAD, init_gl, Quad, Renderer, Texture};
+use vg_gl::{FrameBuffer, Indices, INDICES_PER_QUAD, init_gl, Quad, RenderBuffer, Renderer, Texture};
 use vg_video::{Frame, ImageClipTexture, VideoEncoder};
 use vg_video::RenderRequest;
 
@@ -44,6 +44,10 @@ fn main() -> anyhow::Result<()> {
     let _gl_context = init_gl(width, height);
     let renderer = Renderer::new()?;
 
+    let framebuffer = FrameBuffer::new(
+        gl::COLOR_ATTACHMENT0);
+    framebuffer.bind();
+
     let mut indices_arr: Vec<Indices> = Vec::new();
     let mut quads: Vec<Quad> = Vec::new();
     let mut textures: Vec<Texture> = Vec::new();
@@ -64,7 +68,8 @@ fn main() -> anyhow::Result<()> {
             quads.push(quad);
             let indices = texture.indices();
             indices_arr.push(indices);
-            textures.push(texture.into_gl_texture());
+            let inner_texture = texture.into_gl_texture();
+            textures.push(inner_texture);
         }
     }
     let textures_uniform: Vec<i32> = textures.iter().map(|each| {
@@ -79,9 +84,29 @@ fn main() -> anyhow::Result<()> {
     renderer.set_attrs()?;
     renderer.program.set_int_array_uniform("textures", textures_uniform.as_slice())?;
 
+    let color_texture = Texture::new(gl::TEXTURE31, gl::TEXTURE_2D);
+    color_texture.load_for_framebuffer(width as i32, height as i32);
+    color_texture.set_filtering(gl::LINEAR);
+    framebuffer.attach_texture(&color_texture);
+
+    let renderbuffer = RenderBuffer::new();
+    renderbuffer.bind();
+    renderbuffer.storage(width as i32, height as i32);
+    framebuffer.render(&renderbuffer);
+    match framebuffer.check_status() {
+        Ok(_) => {}
+        Err(err) => {
+            eprintln!("framebuffer error: {}", err);
+        }
+    }
+    // renderbuffer.unbind();
+    framebuffer.unbind();
+
     unsafe {
-        gl::BlendFunc(gl::SRC_ALPHA, gl::ONE_MINUS_SRC_ALPHA);
         gl::Enable(gl::BLEND);
+        gl::BlendFunc(gl::SRC_ALPHA, gl::ONE_MINUS_SRC_ALPHA);
+        // gl::Enable(gl::MULTISAMPLE);
+        gl::Viewport(0, 0, width as GLsizei, height as GLsizei);
     }
     vg_gst::init_gst();
 
@@ -93,13 +118,6 @@ fn main() -> anyhow::Result<()> {
 
     let data_len = width * height * 3;
     let bg = params.timeline.background;
-
-    unsafe {
-        gl::Viewport(0, 0, width as GLsizei, height as GLsizei);
-    }
-    for texture in &textures {
-        texture.activate();
-    }
 
     video.start_render()?;
 
@@ -113,12 +131,21 @@ fn main() -> anyhow::Result<()> {
         let green = bg.get_green() / 255.0;
         let blue = bg.get_blue() / 255.0;
         unsafe {
+            framebuffer.bind();
+            gl::Enable(gl::DEPTH_TEST);
             gl::ClearColor(red, green, blue, 1.0);
             gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT);
+
             renderer.program.use_this();
             renderer.vertex_array.bind();
+            for texture in &textures {
+                texture.activate();
+            }
+
             gl::DrawElements(gl::TRIANGLES, draw_count as GLsizei, gl::UNSIGNED_INT, ptr::null());
 
+            gl::ReadBuffer(gl::COLOR_ATTACHMENT0);
+            gl::PixelStorei(gl::PACK_ALIGNMENT, 3);
             gl::ReadPixels(
                 0,
                 0,
@@ -128,6 +155,9 @@ fn main() -> anyhow::Result<()> {
                 gl::UNSIGNED_BYTE,
                 pixels.as_mut_ptr() as *mut gl::types::GLvoid,
             );
+
+            gl::Disable(gl::DEPTH_TEST);
+            framebuffer.unbind();
         };
         let frame = Frame::new(pixels, i);
         video.send_frame(frame)?;
