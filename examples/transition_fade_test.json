@@ -5,7 +5,7 @@
         "height": 720
     },
     "timeline": {
-        "background": "#8250df",
+        "background": "#101418",
         "tracks": [
             {
                 "clips": [
@@ -15,7 +15,7 @@
                             "src": "http://localhost:8000/wood.jpg"
                         },
                         "start": 0.0,
-                        "length": 3.0,
+                        "length": 4.0,
                         "transition": {
                             "in": "fade",
                             "out": "fade",
@@ -34,18 +34,38 @@
                             "src": "http://localhost:8000/container.png"
                         },
                         "start": 2.0,
-                        "length": 3.0,
+                        "length": 4.0,
                         "transition": {
                             "in": "fade",
                             "out": "fade",
                             "duration": 1.0
                         },
                         "offset": {
-                            "x": 512,
-                            "y": 0
+                            "x": 480,
+                            "y": 80
                         },
-                        "scale": 0.5,
-                        "rotate": 90,
+                        "scale": 0.6,
+                        "rotate": 15,
+                        "position": "center"
+                    },
+                    {
+                        "asset": {
+                            "type": "image",
+                            "src": "http://localhost:8000/texture.jpg"
+                        },
+                        "start": 4.0,
+                        "length": 4.0,
+                        "transition": {
+                            "in": "fade",
+                            "out": "fade",
+                            "duration": 1.0
+                        },
+                        "offset": {
+                            "x": 120,
+                            "y": 200
+                        },
+                        "scale": 0.8,
+                        "rotate": -10,
                         "position": "center"
                     }
                 ]

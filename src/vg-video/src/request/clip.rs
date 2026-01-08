@@ -20,11 +20,38 @@ pub struct Clip {
     pub start: f32,
     pub length: f32,
     pub offset: ClipOffset,
+    #[serde(default)]
+    pub transition: Option<Transition>,
     #[serde(default = "default_scale")]
     pub scale: f32,
     #[serde(default = "default_rotate")]
     pub rotate: f32,
     pub position: String,
+}
+
+#[derive(Debug, Deserialize, Clone, Copy, PartialEq)]
+pub enum TransitionType {
+    #[serde(rename = "fade")]
+    Fade,
+}
+
+#[derive(Debug, Deserialize, Clone, Copy)]
+#[serde(untagged)]
+pub enum Transition {
+    Named(TransitionType),
+    Detailed(TransitionDetails),
+}
+
+#[derive(Debug, Deserialize, Clone, Copy)]
+pub struct TransitionDetails {
+    #[serde(rename = "type")]
+    pub transition_type: Option<TransitionType>,
+    #[serde(rename = "in", default)]
+    pub in_transition: Option<TransitionType>,
+    #[serde(default)]
+    pub out: Option<TransitionType>,
+    #[serde(default)]
+    pub duration: Option<f32>,
 }
 
 impl Into<VideoClip> for Clip {
