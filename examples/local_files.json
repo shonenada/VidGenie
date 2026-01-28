@@ -1,0 +1,49 @@
+{
+    "output": {
+        "format": "mp4",
+        "width": 1280,
+        "height": 720
+    },
+    "timeline": {
+        "background": "#101418",
+        "tracks": [
+            {
+                "clips": [
+                    {
+                        "asset": {
+                            "type": "image",
+                            "src": "./assets/image1.jpg"
+                        },
+                        "start": 0.0,
+                        "length": 3.0,
+                        "offset": { "x": 0, "y": 0 },
+                        "scale": 1.0,
+                        "position": "center"
+                    },
+                    {
+                        "asset": {
+                            "type": "image",
+                            "src": "/absolute/path/to/image2.png"
+                        },
+                        "start": 3.0,
+                        "length": 3.0,
+                        "offset": { "x": 0, "y": 0 },
+                        "scale": 1.0,
+                        "position": "center"
+                    },
+                    {
+                        "asset": {
+                            "type": "image",
+                            "src": "file:///Users/example/images/image3.jpg"
+                        },
+                        "start": 6.0,
+                        "length": 3.0,
+                        "offset": { "x": 0, "y": 0 },
+                        "scale": 1.0,
+                        "position": "center"
+                    }
+                ]
+            }
+        ]
+    }
+}

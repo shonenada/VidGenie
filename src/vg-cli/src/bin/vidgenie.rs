@@ -7,22 +7,25 @@ use colors_transform::Color;
 use gl::types::{GLint, GLsizei};
 use log::debug;
 
-use vg_gl::{FrameBuffer, Indices, INDICES_PER_QUAD, init_gl, Quad, RenderBuffer, Renderer, Texture};
 use anyhow::bail;
-use vg_video::{AssetType, Frame, ImageClipTexture, RenderRequest, Transition, TransitionType, VideoEncoder};
+use vg_gl::{init_gl, FrameBuffer, Indices, RenderBuffer, Renderer, Texture, INDICES_PER_QUAD};
+use vg_video::{
+    AssetType, Frame, ImageClipTexture, RenderRequest, Transition, TransitionType, VideoEncoder,
+};
 
 const ALIASING_SAMPLES: GLsizei = 4;
 const FPS: u32 = 30;
 const SINGLE_QUAD_INDICES: Indices = Indices([0, 1, 2, 2, 3, 0]);
 
 struct ClipRender {
-    quad: Quad,
+    image_texture: ImageClipTexture,
     texture: Texture,
     start_seconds: f32,
     start_frame: u64,
     end_frame: u64,
     transition: Option<Transition>,
     length_seconds: f32,
+    has_keyframes: bool,
 }
 
 fn seconds_to_frames(seconds: f32) -> u64 {
@@ -122,7 +125,6 @@ fn main() -> anyhow::Result<()> {
 
     let renderer = Renderer::new()?;
     let mut render_clips: Vec<ClipRender> = Vec::new();
-    let mut textures: Vec<Texture> = Vec::new();
     let mut max_end_frame = 0u64;
     let mut texture_idx = 0u32;
     for track in &params.timeline.tracks {
@@ -139,7 +141,7 @@ fn main() -> anyhow::Result<()> {
                 max_end_frame = end_frame;
             }
 
-            let mut texture = ImageClipTexture::new(
+            let mut image_texture = ImageClipTexture::new(
                 &clip.asset.src,
                 width as f32,
                 height as f32,
@@ -147,29 +149,41 @@ fn main() -> anyhow::Result<()> {
                 clip.scale,
                 clip.rotate,
             );
-            texture.set_offset(clip.offset.x, clip.offset.y);
-            texture.load()?;
+            image_texture.set_offset(clip.offset.x, clip.offset.y);
 
-            let quad = texture.quad();
-            let inner_texture = texture.into_gl_texture();
+            let has_keyframes = if let Some(ref transform) = clip.transform {
+                let keyframes = transform.to_keyframes(clip.length, width as f32, height as f32);
+                image_texture.set_keyframes(keyframes);
+                true
+            } else {
+                false
+            };
+
+            image_texture.load()?;
+
+            let inner_texture = image_texture.texture().unwrap();
             render_clips.push(ClipRender {
-                quad,
+                image_texture,
                 texture: inner_texture,
                 start_seconds: clip.start,
                 start_frame,
                 end_frame,
                 transition: clip.transition,
                 length_seconds: clip.length,
+                has_keyframes,
             });
             texture_idx += 1;
         }
     }
-    let textures_uniform: Vec<i32> = render_clips.iter().map(|each| {
-        (each.texture.unit - gl::TEXTURE0) as i32
-    }).collect();
+    let textures_uniform: Vec<i32> = render_clips
+        .iter()
+        .map(|each| (each.texture.unit - gl::TEXTURE0) as i32)
+        .collect();
 
     renderer.set_attrs()?;
-    renderer.program.set_int_array_uniform("textures", textures_uniform.as_slice())?;
+    renderer
+        .program
+        .set_int_array_uniform("textures", textures_uniform.as_slice())?;
 
     // Multi sample for anti aliasing
     let color_texture = Texture::new_without_unit(gl::TEXTURE_2D_MULTISAMPLE);
@@ -246,12 +260,25 @@ fn main() -> anyhow::Result<()> {
                 if i < clip.start_frame || i >= clip.end_frame {
                     continue;
                 }
-                let alpha = clip_alpha(clip, i);
+                let mut alpha = clip_alpha(clip, i);
                 if alpha <= 0.0 {
                     continue;
                 }
+
+                let local_time = (i as f32 / FPS as f32) - clip.start_seconds;
+                let quad = clip.image_texture.quad_at_time(local_time);
+
+                if clip.has_keyframes {
+                    let transform_opacity = clip.image_texture.opacity_at_time(local_time);
+                    alpha *= transform_opacity;
+                }
+
+                if alpha <= 0.0 {
+                    continue;
+                }
+
                 renderer.program.set_float_uniform("uAlpha", alpha)?;
-                renderer.set_vertex_buffer_data(&[clip.quad])?;
+                renderer.set_vertex_buffer_data(&[quad])?;
                 renderer.set_index_buffer_data(&[SINGLE_QUAD_INDICES])?;
                 gl::DrawElements(
                     gl::TRIANGLES,
@@ -273,7 +300,8 @@ fn main() -> anyhow::Result<()> {
                 width as GLint,
                 height as GLint,
                 gl::COLOR_BUFFER_BIT,
-                gl::NEAREST);
+                gl::NEAREST,
+            );
 
             result_frame.bind();
 

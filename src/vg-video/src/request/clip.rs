@@ -3,6 +3,7 @@ use serde::Deserialize;
 use vg_gst::Frame;
 
 use crate::asset::{Asset, MediaAsset};
+use crate::request::transform::Transform;
 
 #[derive(Debug, Deserialize)]
 pub struct ClipOffset {
@@ -27,6 +28,8 @@ pub struct Clip {
     #[serde(default = "default_rotate")]
     pub rotate: f32,
     pub position: String,
+    #[serde(default)]
+    pub transform: Option<Transform>,
 }
 
 #[derive(Debug, Deserialize, Clone, Copy, PartialEq)]

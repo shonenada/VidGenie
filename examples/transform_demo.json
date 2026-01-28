@@ -1,0 +1,104 @@
+{
+    "output": {
+        "format": "mp4",
+        "width": 1280,
+        "height": 720
+    },
+    "timeline": {
+        "background": "#101418",
+        "tracks": [
+            {
+                "clips": [
+                    {
+                        "asset": {
+                            "type": "image",
+                            "src": "http://localhost:8000/wood.jpg"
+                        },
+                        "start": 0.0,
+                        "length": 4.0,
+                        "offset": { "x": 0, "y": 0 },
+                        "scale": 1.0,
+                        "position": "center",
+                        "transform": {
+                            "preset": "ken_burns",
+                            "preset_config": {
+                                "zoom_start": 1.0,
+                                "zoom_end": 1.2,
+                                "pan_distance": 50
+                            }
+                        }
+                    },
+                    {
+                        "asset": {
+                            "type": "image",
+                            "src": "http://localhost:8000/container.png"
+                        },
+                        "start": 2.0,
+                        "length": 4.0,
+                        "offset": { "x": 200, "y": 100 },
+                        "scale": 0.8,
+                        "position": "center",
+                        "transform": {
+                            "keyframes": [
+                                { "time": 0.0, "scale": 0.5, "rotate": -10, "opacity": 0.0 },
+                                { "time": 0.5, "scale": 1.0, "rotate": 0, "opacity": 1.0 },
+                                { "time": 3.5, "scale": 1.0, "rotate": 0, "opacity": 1.0 },
+                                { "time": 4.0, "scale": 1.2, "rotate": 10, "opacity": 0.0 }
+                            ]
+                        }
+                    },
+                    {
+                        "asset": {
+                            "type": "image",
+                            "src": "http://localhost:8000/texture.jpg"
+                        },
+                        "start": 4.0,
+                        "length": 4.0,
+                        "offset": { "x": 100, "y": 50 },
+                        "scale": 1.0,
+                        "position": "center",
+                        "transform": {
+                            "preset": "slide_in_left"
+                        }
+                    },
+                    {
+                        "asset": {
+                            "type": "image",
+                            "src": "http://localhost:8000/wood.jpg"
+                        },
+                        "start": 6.0,
+                        "length": 4.0,
+                        "offset": { "x": 400, "y": 200 },
+                        "scale": 0.6,
+                        "position": "center",
+                        "transform": {
+                            "keyframes": [
+                                { "time": 0.0, "skew_x": -15, "skew_y": 0 },
+                                { "time": 2.0, "skew_x": 15, "skew_y": 0 },
+                                { "time": 4.0, "skew_x": -15, "skew_y": 0 }
+                            ]
+                        }
+                    },
+                    {
+                        "asset": {
+                            "type": "image",
+                            "src": "http://localhost:8000/container.png"
+                        },
+                        "start": 8.0,
+                        "length": 3.0,
+                        "offset": { "x": 300, "y": 150 },
+                        "scale": 0.5,
+                        "position": "center",
+                        "transform": {
+                            "keyframes": [
+                                { "time": 0.0, "flip_x": false },
+                                { "time": 1.5, "flip_x": true },
+                                { "time": 3.0, "flip_x": false }
+                            ]
+                        }
+                    }
+                ]
+            }
+        ]
+    }
+}
