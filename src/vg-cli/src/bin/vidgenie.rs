@@ -8,10 +8,75 @@ use gl::types::{GLint, GLsizei};
 use log::debug;
 
 use vg_gl::{FrameBuffer, Indices, INDICES_PER_QUAD, init_gl, Quad, RenderBuffer, Renderer, Texture};
-use vg_video::{Frame, ImageClipTexture, VideoEncoder};
-use vg_video::RenderRequest;
+use anyhow::bail;
+use vg_video::{AssetType, Frame, ImageClipTexture, RenderRequest, Transition, TransitionType, VideoEncoder};
 
 const ALIASING_SAMPLES: GLsizei = 4;
+const FPS: u32 = 30;
+const SINGLE_QUAD_INDICES: Indices = Indices([0, 1, 2, 2, 3, 0]);
+
+struct ClipRender {
+    quad: Quad,
+    texture: Texture,
+    start_seconds: f32,
+    start_frame: u64,
+    end_frame: u64,
+    transition: Option<Transition>,
+    length_seconds: f32,
+}
+
+fn seconds_to_frames(seconds: f32) -> u64 {
+    (seconds as f64 * FPS as f64).round() as u64
+}
+
+fn clip_alpha(clip: &ClipRender, frame: u64) -> f32 {
+    let time = frame as f32 / FPS as f32;
+    let local = time - clip.start_seconds;
+    if local < 0.0 || local >= clip.length_seconds {
+        return 0.0;
+    }
+    let mut alpha: f32 = 1.0;
+    if let Some(transition) = clip.transition {
+        let (fade_in, fade_out, duration) = transition_params(transition);
+        let max_duration = (clip.length_seconds / 2.0).max(0.0);
+        let duration = duration.min(max_duration);
+        if duration > 0.0 {
+            if fade_in && local < duration {
+                alpha = alpha.min(local / duration);
+            }
+            if fade_out && local > clip.length_seconds - duration {
+                alpha = alpha.min((clip.length_seconds - local) / duration);
+            }
+        }
+    }
+    alpha.clamp(0.0, 1.0)
+}
+
+fn transition_params(transition: Transition) -> (bool, bool, f32) {
+    match transition {
+        Transition::Named(TransitionType::Fade) => (true, true, 1.0),
+        Transition::Detailed(details) => {
+            let duration = details.duration.unwrap_or(1.0);
+            let mut fade_in = false;
+            let mut fade_out = false;
+            if let Some(t) = details.in_transition {
+                fade_in = t == TransitionType::Fade;
+            }
+            if let Some(t) = details.out {
+                fade_out = t == TransitionType::Fade;
+            }
+            if !fade_in && !fade_out {
+                if let Some(t) = details.transition_type {
+                    if t == TransitionType::Fade {
+                        fade_in = true;
+                        fade_out = true;
+                    }
+                }
+            }
+            (fade_in, fade_out, duration)
+        }
+    }
+}
 
 #[derive(Parser, Debug)]
 struct Args {
@@ -56,16 +121,29 @@ fn main() -> anyhow::Result<()> {
     let _gl_context = init_gl(width, height);
 
     let renderer = Renderer::new()?;
-    let mut indices_arr: Vec<Indices> = Vec::new();
-    let mut quads: Vec<Quad> = Vec::new();
+    let mut render_clips: Vec<ClipRender> = Vec::new();
     let mut textures: Vec<Texture> = Vec::new();
+    let mut max_end_frame = 0u64;
+    let mut texture_idx = 0u32;
     for track in &params.timeline.tracks {
-        for (idx, clip) in track.clips.iter().enumerate() {
+        for clip in &track.clips {
+            if clip.asset.asset_type != AssetType::Image {
+                bail!("Only image assets are supported right now.");
+            }
+            if texture_idx >= 32 {
+                bail!("Max 32 image clips supported per render.");
+            }
+            let start_frame = seconds_to_frames(clip.start);
+            let end_frame = start_frame + seconds_to_frames(clip.length);
+            if end_frame > max_end_frame {
+                max_end_frame = end_frame;
+            }
+
             let mut texture = ImageClipTexture::new(
                 &clip.asset.src,
                 width as f32,
                 height as f32,
-                idx as u32,
+                texture_idx,
                 clip.scale,
                 clip.rotate,
             );
@@ -73,22 +151,23 @@ fn main() -> anyhow::Result<()> {
             texture.load()?;
 
             let quad = texture.quad();
-            quads.push(quad);
-            let indices = texture.indices();
-            indices_arr.push(indices);
             let inner_texture = texture.into_gl_texture();
-            textures.push(inner_texture);
+            render_clips.push(ClipRender {
+                quad,
+                texture: inner_texture,
+                start_seconds: clip.start,
+                start_frame,
+                end_frame,
+                transition: clip.transition,
+                length_seconds: clip.length,
+            });
+            texture_idx += 1;
         }
     }
-    let textures_uniform: Vec<i32> = textures.iter().map(|each| {
-        (each.unit - gl::TEXTURE0) as i32
+    let textures_uniform: Vec<i32> = render_clips.iter().map(|each| {
+        (each.texture.unit - gl::TEXTURE0) as i32
     }).collect();
 
-    debug!("Quads: {:#?}", quads.as_slice());
-    debug!("Indices: {:#?}", indices_arr.as_slice());
-
-    renderer.set_vertex_buffer_data(quads.as_slice())?;
-    renderer.set_index_buffer_data(indices_arr.as_slice())?;
     renderer.set_attrs()?;
     renderer.program.set_int_array_uniform("textures", textures_uniform.as_slice())?;
 
@@ -132,8 +211,8 @@ fn main() -> anyhow::Result<()> {
         gl::Enable(gl::MULTISAMPLE);
         gl::Viewport(0, 0, width as GLsizei, height as GLsizei);
     }
-    for texture in &textures {
-        texture.activate();
+    for clip in &render_clips {
+        clip.texture.activate();
     }
 
     let mut video = VideoEncoder::builder()
@@ -144,10 +223,10 @@ fn main() -> anyhow::Result<()> {
 
     let bg = params.timeline.background;
     let data_len = width * height * 3;
-    let draw_count = INDICES_PER_QUAD * indices_arr.len();
+    let total_frames = max_end_frame.max(1);
 
     video.start_render()?;
-    for i in 0..60 {
+    for i in 0..total_frames {
         debug!("Writing frame num: {}", i);
         let mut pixels = vec![0u8; data_len as usize];
         let red = bg.get_red() / 255.0;
@@ -162,7 +241,25 @@ fn main() -> anyhow::Result<()> {
             renderer.program.use_this();
             renderer.vertex_array.bind();
 
-            gl::DrawElements(gl::TRIANGLES, draw_count as GLsizei, gl::UNSIGNED_INT, ptr::null());
+            renderer.program.set_float_uniform("uAlpha", 1.0)?;
+            for clip in &render_clips {
+                if i < clip.start_frame || i >= clip.end_frame {
+                    continue;
+                }
+                let alpha = clip_alpha(clip, i);
+                if alpha <= 0.0 {
+                    continue;
+                }
+                renderer.program.set_float_uniform("uAlpha", alpha)?;
+                renderer.set_vertex_buffer_data(&[clip.quad])?;
+                renderer.set_index_buffer_data(&[SINGLE_QUAD_INDICES])?;
+                gl::DrawElements(
+                    gl::TRIANGLES,
+                    INDICES_PER_QUAD as GLsizei,
+                    gl::UNSIGNED_INT,
+                    ptr::null(),
+                );
+            }
 
             gl::BindFramebuffer(gl::READ_FRAMEBUFFER, color_frame.id);
             gl::BindFramebuffer(gl::DRAW_FRAMEBUFFER, result_frame.id);
