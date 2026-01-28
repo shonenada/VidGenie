@@ -25,6 +25,29 @@ fmt: ## Format the project.
 clean: ## Clean the project.
 	cargo clean
 
+.PHONY: list-examples
+list-examples: ## List available JSON examples.
+	@echo "Available examples in examples/:"
+	@ls -1 examples/*.json 2>/dev/null | xargs -n1 basename | sed 's/^/  /'
+
+.PHONY: render-example
+render-example: ## Render video from a JSON example (usage: make render-example EXAMPLE=filename.json)
+	@test -n "$(EXAMPLE)" || (echo "Usage: make render-example EXAMPLE=filename.json"; echo "Run 'make list-examples' to see available examples."; exit 1)
+	@test -f examples/$(EXAMPLE) || (echo "Error: examples/$(EXAMPLE) not found"; exit 1)
+	@echo "Rendering $(EXAMPLE)..."
+	@cargo run -p vg-cli -- --file examples/$(EXAMPLE) --output outputs/$(basename $(EXAMPLE) .json).mp4
+	@echo "Video saved to outputs/$(basename $(EXAMPLE) .json).mp4"
+
+.PHONY: render-all-examples
+render-all-examples: ## Render videos from all JSON examples.
+	@mkdir -p outputs
+	@for file in examples/*.json; do \
+		name=$$(basename "$$file" .json); \
+		echo "Rendering $$name.json..."; \
+		cargo run -p vg-cli -- --file "$$file" --output "outputs/$$name.mp4"; \
+	done
+	@echo "All videos saved to outputs/"
+
 ##@ Build
 
 .PHONY: build
