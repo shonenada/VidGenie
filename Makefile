@@ -34,9 +34,10 @@ list-examples: ## List available JSON examples.
 render-example: ## Render video from a JSON example (usage: make render-example EXAMPLE=filename.json)
 	@test -n "$(EXAMPLE)" || (echo "Usage: make render-example EXAMPLE=filename.json"; echo "Run 'make list-examples' to see available examples."; exit 1)
 	@test -f examples/$(EXAMPLE) || (echo "Error: examples/$(EXAMPLE) not found"; exit 1)
+	@mkdir -p outputs
 	@echo "Rendering $(EXAMPLE)..."
-	@cargo run -p vg-cli -- --file examples/$(EXAMPLE) --output outputs/$(basename $(EXAMPLE) .json).mp4
-	@echo "Video saved to outputs/$(basename $(EXAMPLE) .json).mp4"
+	@cargo run -p vg-cli -- --file "examples/$(EXAMPLE)" --output "outputs/$(shell basename $(EXAMPLE) .json).mp4"
+	@echo "Video saved to outputs/$(shell basename $(EXAMPLE) .json).mp4"
 
 .PHONY: render-all-examples
 render-all-examples: ## Render videos from all JSON examples.
