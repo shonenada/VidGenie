@@ -55,6 +55,17 @@ render-all-examples: ## Render videos from all JSON examples.
 build: ## Build VidGenie.
 	cargo build -p vg-cli 
 
+.PHONY: docker-build
+docker-build: ## Build Docker image for VidGenie (dockerfiles/build/Dockerfile).
+	docker build --no-cache -f dockerfiles/build/Dockerfile -t vidgenie-build .
+
+.PHONY: docker-render-example
+docker-render-example: ## Render video from an example JSON inside Docker (usage: make docker-render-example EXAMPLE=filename.json)
+	@test -n "$(EXAMPLE)" || (echo "Usage: make docker-render-example EXAMPLE=filename.json"; echo "Run 'make list-examples' to see available examples."; exit 1)
+	@test -f examples/$(EXAMPLE) || (echo "Error: examples/$(EXAMPLE) not found"; exit 1)
+	@mkdir -p outputs
+	docker run --rm -v "$(PWD)":/workspace -w /workspace vidgenie-build make render-example EXAMPLE=$(EXAMPLE)
+
 ##@ Test
 
 .PHONY: unit-test

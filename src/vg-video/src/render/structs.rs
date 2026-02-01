@@ -24,6 +24,7 @@ pub struct ImageClipTexture {
     offset: ImageClipOffset,
     base_scale: f32,
     base_rotate: f32,
+    position: String,
     keyframes: Option<Vec<Keyframe>>,
 }
 
@@ -35,6 +36,7 @@ impl ImageClipTexture {
         idx: u32,
         scale: f32,
         rotate: f32,
+        position: &str,
     ) -> Self {
         Self {
             url: url.to_string(),
@@ -43,6 +45,7 @@ impl ImageClipTexture {
             canvas_height,
             base_scale: scale,
             base_rotate: rotate,
+            position: position.to_string(),
             keyframes: None,
 
             texture: None,
@@ -109,8 +112,18 @@ impl ImageClipTexture {
         let transformer = self.build_transformer(local_time);
         let idx = self.texture_idx as f32;
 
-        let (x0, y0) = (0.0, 0.0);
-        let (x1, y1) = (self.image_width, self.image_height);
+        // Calculate position offset based on position property
+        let (pos_offset_x, pos_offset_y) = if self.position == "center" {
+            // Center the image on the canvas
+            let offset_x = (self.canvas_width - self.image_width) / 2.0;
+            let offset_y = (self.canvas_height - self.image_height) / 2.0;
+            (offset_x, offset_y)
+        } else {
+            (0.0, 0.0)
+        };
+
+        let (x0, y0) = (pos_offset_x, pos_offset_y);
+        let (x1, y1) = (pos_offset_x + self.image_width, pos_offset_y + self.image_height);
 
         let mid_x = x0 + (x1 - x0) / 2.0;
         let mid_y = y0 + (y1 - y0) / 2.0;

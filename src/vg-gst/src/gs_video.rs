@@ -82,6 +82,12 @@ impl GSVideo {
 
     pub fn setup_pipeline(&self, output_location: &str) -> anyhow::Result<()> {
         let video_conv = gst::ElementFactory::make("videoconvert").build()?;
+        let i420_caps = gst::Caps::builder("video/x-raw")
+            .field("format", &gst_video::VideoFormat::I420.to_string())
+            .build();
+        let capsfilter = gst::ElementFactory::make("capsfilter")
+            .property("caps", &i420_caps)
+            .build()?;
         let video_enc = gst::ElementFactory::make("x264enc").build()?;
         let video_parse = gst::ElementFactory::make("h264parse")
             .property_from_str("config-interval", &"3")
@@ -94,6 +100,7 @@ impl GSVideo {
         let links = [
             &(self.appsrc.upcast_ref()),
             &video_conv,
+            &capsfilter,
             &video_enc,
             &video_parse,
             &qtmux,
@@ -148,6 +155,7 @@ impl GSVideo {
     }
 
     pub fn stop(&mut self) -> anyhow::Result<()> {
+        self.pipeline.set_state(gst::State::Ready)?;
         self.pipeline.set_state(gst::State::Null)?;
 
         Ok(())

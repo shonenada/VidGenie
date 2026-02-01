@@ -148,6 +148,7 @@ fn main() -> anyhow::Result<()> {
                 texture_idx,
                 clip.scale,
                 clip.rotate,
+                &clip.position,
             );
             image_texture.set_offset(clip.offset.x, clip.offset.y);
 
@@ -175,15 +176,9 @@ fn main() -> anyhow::Result<()> {
             texture_idx += 1;
         }
     }
-    let textures_uniform: Vec<i32> = render_clips
-        .iter()
-        .map(|each| (each.texture.unit - gl::TEXTURE0) as i32)
-        .collect();
-
     renderer.set_attrs()?;
-    renderer
-        .program
-        .set_int_array_uniform("textures", textures_uniform.as_slice())?;
+    renderer.program.use_this();
+    renderer.program.set_int_uniform("uTexture", 0)?;
 
     // Multi sample for anti aliasing
     let color_texture = Texture::new_without_unit(gl::TEXTURE_2D_MULTISAMPLE);
@@ -278,6 +273,8 @@ fn main() -> anyhow::Result<()> {
                 }
 
                 renderer.program.set_float_uniform("uAlpha", alpha)?;
+                gl::ActiveTexture(gl::TEXTURE0);
+                gl::BindTexture(gl::TEXTURE_2D, clip.texture.id);
                 renderer.set_vertex_buffer_data(&[quad])?;
                 renderer.set_index_buffer_data(&[SINGLE_QUAD_INDICES])?;
                 gl::DrawElements(

@@ -11,23 +11,37 @@ RUN apt-get update && \
         gstreamer1.0-plugins-ugly \
         gstreamer1.0-libav \
         gstreamer1.0-tools \
-        gstreamer1.0-x \
         gstreamer1.0-alsa \
         gstreamer1.0-gl \
-        gstreamer1.0-gtk3 \
-        gstreamer1.0-qt5 \
         gstreamer1.0-pulseaudio \
-        cmake gcc g++ \
+        make cmake gcc g++ \
         pkg-config \
         libssl-dev \
         libfontconfig1-dev \
-        libxrandr-dev \
-        libxinerama-dev \
-        libxcursor-dev \
-        libxi-dev \
         libfreetype6 \
         libfreetype6-dev \
-        xvfb xauth && \
+        libegl1-mesa-dev \
+        libgbm-dev && \
     rm -rf /var/lib/apt/lists/*
 
-# xvfb-run -s "-screen 0 1280x720x24" cargo run -p vg-cli -- --file examples/transition_fade_test.json
+# Pre-download and cache cargo dependencies
+WORKDIR /tmp/vidgenie-deps
+COPY Cargo.toml Cargo.lock rust-toolchain.toml ./
+COPY src/vg-gl/Cargo.toml src/vg-gl/
+COPY src/vg-gst/Cargo.toml src/vg-gst/
+COPY src/vg-video/Cargo.toml src/vg-video/
+COPY src/vg-cli/Cargo.toml src/vg-cli/
+
+# Create dummy source files to allow cargo fetch/build to work
+RUN mkdir -p src/vg-gl/src src/vg-gst/src src/vg-video/src src/vg-cli/src/bin && \
+    echo "fn main() {}" > src/vg-cli/src/bin/vidgenie.rs && \
+    touch src/vg-gl/src/lib.rs src/vg-gst/src/lib.rs src/vg-video/src/lib.rs
+
+# Fetch all dependencies and build to cache compiled crates
+RUN cargo fetch && \
+    cargo build --release -p vg-cli 2>/dev/null || true && \
+    rm -rf src
+
+WORKDIR /workspace
+
+ENV VIDGENIE_HEADLESS=1

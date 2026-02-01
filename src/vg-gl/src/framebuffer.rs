@@ -55,13 +55,7 @@ impl FrameBuffer {
 
     pub fn attach_texture(&self, tex: &Texture) {
         unsafe {
-            gl::FramebufferTexture2D(
-                gl::FRAMEBUFFER,
-                self.attachment,
-                tex.target,
-                tex.id,
-                0,
-            );
+            gl::FramebufferTexture2D(gl::FRAMEBUFFER, self.attachment, tex.target, tex.id, 0);
         }
     }
 

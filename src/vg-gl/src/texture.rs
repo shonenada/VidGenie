@@ -17,11 +17,7 @@ impl Texture {
         unsafe {
             gl::GenTextures(1, &mut id);
         };
-        Self {
-            id,
-            unit,
-            target,
-        }
+        Self { id, unit, target }
     }
 
     pub fn new_without_unit(target: GLenum) -> Self {
@@ -112,7 +108,8 @@ impl Texture {
 
     pub fn bind_unit(&self) {
         unsafe {
-            gl::BindTextureUnit(self.unit, self.id);
+            gl::ActiveTexture(self.unit);
+            gl::BindTexture(self.target, self.id);
         }
     }
 

@@ -12,7 +12,7 @@
                     {
                         "asset": {
                             "type": "image",
-                            "src": "./assets/image1.jpg"
+                            "src": "./resources/001.jpg"
                         },
                         "start": 0.0,
                         "length": 3.0,
@@ -23,7 +23,7 @@
                     {
                         "asset": {
                             "type": "image",
-                            "src": "/absolute/path/to/image2.png"
+                            "src": "/workspace/resources/002.jpg"
                         },
                         "start": 3.0,
                         "length": 3.0,
@@ -34,7 +34,7 @@
                     {
                         "asset": {
                             "type": "image",
-                            "src": "file:///Users/example/images/image3.jpg"
+                            "src": "file:///workspace/resources/003.jpg"
                         },
                         "start": 6.0,
                         "length": 3.0,

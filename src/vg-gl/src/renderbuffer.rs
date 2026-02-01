@@ -11,9 +11,7 @@ impl RenderBuffer {
         unsafe {
             gl::GenRenderbuffers(1, &mut id);
         };
-        Self {
-            id,
-        }
+        Self { id }
     }
 
     pub fn bind(&self) {

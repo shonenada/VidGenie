@@ -1,4 +1,4 @@
-use crate::{GLBuffer, INDICES_PER_QUAD, Program, Quad, set_attribute, Shader, VertexArray};
+use crate::{set_attribute, GLBuffer, Program, Quad, Shader, VertexArray, INDICES_PER_QUAD};
 
 type Pos = [f32; 2];
 // x, y
@@ -61,6 +61,9 @@ impl Renderer {
         let color_attrib = self.program.get_attrib_location("verTexCoord")?;
         let tex_idx_attrib = self.program.get_attrib_location("inTexIdx")?;
         let va = &self.vertex_array;
+        self.vertex_array.bind();
+        self.vertex_buffer.bind();
+        self.index_buffer.bind();
         unsafe {
             set_attribute!(va, pos_attrib, Vertex::0);
             set_attribute!(va, color_attrib, Vertex::1);

@@ -33,7 +33,7 @@ impl GLBuffer {
                 data_bytes.len() as GLsizeiptr,
                 data_bytes.as_ptr() as *const _,
                 usage,
-            )
+            );
         }
     }
 

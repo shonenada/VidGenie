@@ -12,7 +12,7 @@
                     {
                         "asset": {
                             "type": "image",
-                            "src": "http://localhost:8000/texture.jpg"
+                            "src": "./resources/001.jpg"
                         },
                         "start": 0.0,
                         "length": 3.0,
