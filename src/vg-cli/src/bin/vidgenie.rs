@@ -10,7 +10,8 @@ use log::debug;
 use anyhow::bail;
 use vg_gl::{init_gl, FrameBuffer, Indices, RenderBuffer, Renderer, Texture, INDICES_PER_QUAD};
 use vg_video::{
-    AssetType, Frame, ImageClipTexture, RenderRequest, Transition, TransitionType, VideoEncoder,
+    AssetType, CaptionOverlay, Frame, ImageClipTexture, RenderRequest, Transition, TransitionType,
+    VideoEncoder,
 };
 
 const ALIASING_SAMPLES: GLsizei = 4;
@@ -26,6 +27,7 @@ struct ClipRender {
     transition: Option<Transition>,
     length_seconds: f32,
     has_keyframes: bool,
+    caption_overlay: Option<CaptionOverlay>,
 }
 
 fn seconds_to_frames(seconds: f32) -> u64 {
@@ -162,6 +164,17 @@ fn main() -> anyhow::Result<()> {
 
             image_texture.load()?;
 
+            let caption_overlay = if let Some(ref caption_config) = clip.caption {
+                Some(CaptionOverlay::from_config(
+                    caption_config,
+                    clip.length,
+                    width as f32,
+                    height as f32,
+                )?)
+            } else {
+                None
+            };
+
             let inner_texture = image_texture.texture().unwrap();
             render_clips.push(ClipRender {
                 image_texture,
@@ -172,6 +185,7 @@ fn main() -> anyhow::Result<()> {
                 transition: clip.transition,
                 length_seconds: clip.length,
                 has_keyframes,
+                caption_overlay,
             });
             texture_idx += 1;
         }
@@ -283,6 +297,31 @@ fn main() -> anyhow::Result<()> {
                     gl::UNSIGNED_INT,
                     ptr::null(),
                 );
+
+                if let Some(ref overlay) = clip.caption_overlay {
+                    if let Some(page) = overlay.active_page_at(local_time) {
+                        let caption_quad = page.quad(
+                            width as f32,
+                            height as f32,
+                            &overlay.anchor,
+                            overlay.margin_x,
+                            overlay.margin_y,
+                        );
+                        gl::Disable(gl::DEPTH_TEST);
+                        renderer.program.set_float_uniform("uAlpha", alpha)?;
+                        gl::ActiveTexture(gl::TEXTURE0);
+                        gl::BindTexture(gl::TEXTURE_2D, page.texture.id);
+                        renderer.set_vertex_buffer_data(&[caption_quad])?;
+                        renderer.set_index_buffer_data(&[SINGLE_QUAD_INDICES])?;
+                        gl::DrawElements(
+                            gl::TRIANGLES,
+                            INDICES_PER_QUAD as GLsizei,
+                            gl::UNSIGNED_INT,
+                            ptr::null(),
+                        );
+                        gl::Enable(gl::DEPTH_TEST);
+                    }
+                }
             }
 
             gl::BindFramebuffer(gl::READ_FRAMEBUFFER, color_frame.id);

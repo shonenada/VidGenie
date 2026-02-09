@@ -1,0 +1,100 @@
+{
+    "output": {
+        "format": "mp4",
+        "width": 1280,
+        "height": 720
+    },
+    "timeline": {
+        "background": "#101418",
+        "tracks": [
+            {
+                "clips": [
+                    {
+                        "asset": {
+                            "type": "image",
+                            "src": "./resources/001.jpg"
+                        },
+                        "start": 0.0,
+                        "length": 5.0,
+                        "offset": { "x": 0, "y": 0 },
+                        "scale": 1.0,
+                        "position": "center",
+                        "caption": {
+                            "text": "Welcome to VidGenie! This is a demo of the caption feature with automatic text wrapping and page splitting.",
+                            "layout": {
+                                "max_width": { "chars": 30 },
+                                "max_lines": 2,
+                                "align": "center"
+                            },
+                            "placement": {
+                                "anchor": "bottom_center",
+                                "margin_px": { "x": 40, "y": 60 }
+                            },
+                            "style": {
+                                "color": "#FFFFFF",
+                                "bg_color": "#00000080",
+                                "padding_px": 12
+                            }
+                        }
+                    },
+                    {
+                        "asset": {
+                            "type": "image",
+                            "src": "./resources/002.jpg"
+                        },
+                        "start": 5.0,
+                        "length": 5.0,
+                        "offset": { "x": 0, "y": 0 },
+                        "scale": 1.0,
+                        "position": "center",
+                        "caption": {
+                            "text": "多语言字幕支持：中文、日本語、한국어、Français、Italiano。VidGenie可以自动分割长文本为多页字幕。",
+                            "layout": {
+                                "max_width": { "chars": 20 },
+                                "max_lines": 2,
+                                "align": "center"
+                            },
+                            "placement": {
+                                "anchor": "bottom_center",
+                                "margin_px": { "x": 40, "y": 60 }
+                            },
+                            "style": {
+                                "color": "#FFFF00",
+                                "bg_color": "#000000C0",
+                                "padding_px": 10
+                            }
+                        }
+                    },
+                    {
+                        "asset": {
+                            "type": "image",
+                            "src": "./resources/003.jpg"
+                        },
+                        "start": 10.0,
+                        "length": 5.0,
+                        "offset": { "x": 0, "y": 0 },
+                        "scale": 1.0,
+                        "position": "center",
+                        "caption": {
+                            "text": "Pixel-based width constraint ensures text fits perfectly on screen regardless of language.",
+                            "layout": {
+                                "max_width": { "px": 900 },
+                                "max_lines": 2,
+                                "align": "center"
+                            },
+                            "placement": {
+                                "anchor": "top_center",
+                                "margin_px": { "x": 40, "y": 40 }
+                            },
+                            "style": {
+                                "color": "#00FF88",
+                                "bg_color": "#000000A0",
+                                "padding_px": 14
+                            }
+                        }
+                    }
+                ]
+            }
+        ]
+    }
+}

@@ -5,8 +5,12 @@ pub use request::clip::{Transition, TransitionType};
 pub use request::transform::{Transform, TransformPreset, Keyframe, PresetConfig, interpolate_keyframes};
 pub use vg_gst::Frame;
 pub use video_encoder::VideoEncoder;
+pub use request::caption::CaptionConfig;
+pub use overlay::caption_overlay::CaptionOverlay;
 
 mod video_encoder;
 pub mod asset;
 mod render;
 mod request;
+pub mod text;
+pub mod overlay;
