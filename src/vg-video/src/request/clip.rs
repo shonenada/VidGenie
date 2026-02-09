@@ -3,6 +3,7 @@ use serde::Deserialize;
 use vg_gst::Frame;
 
 use crate::asset::{Asset, MediaAsset};
+use crate::request::caption::CaptionConfig;
 use crate::request::transform::Transform;
 
 #[derive(Debug, Deserialize)]
@@ -30,6 +31,8 @@ pub struct Clip {
     pub position: String,
     #[serde(default)]
     pub transform: Option<Transform>,
+    #[serde(default)]
+    pub caption: Option<CaptionConfig>,
 }
 
 #[derive(Debug, Deserialize, Clone, Copy, PartialEq)]
