@@ -63,7 +63,7 @@ pub struct TransitionDetails {
 impl Into<VideoClip> for Clip {
     fn into(self) -> VideoClip {
         VideoClip {
-            asset: self.asset.into(),
+            asset: self.asset.into_media(),
             offset: self.offset,
             position: self.position,
             scale: self.scale,

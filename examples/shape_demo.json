@@ -1,0 +1,128 @@
+{
+    "output": {
+        "format": "mp4",
+        "width": 1280,
+        "height": 720
+    },
+    "timeline": {
+        "background": "#1a1a2e",
+        "tracks": [
+            {
+                "clips": [
+                    {
+                        "asset": {
+                            "type": "shape",
+                            "shape": "rectangle",
+                            "rectangle": {
+                                "width": 300,
+                                "height": 200
+                            },
+                            "fill": {
+                                "color": "#e94560"
+                            }
+                        },
+                        "start": 0.0,
+                        "length": 3.0,
+                        "offset": { "x": 0, "y": 0 },
+                        "scale": 1.0,
+                        "position": "center"
+                    },
+                    {
+                        "asset": {
+                            "type": "shape",
+                            "shape": "rectangle",
+                            "rectangle": {
+                                "width": 250,
+                                "height": 250,
+                                "cornerRadius": 30
+                            },
+                            "fill": {
+                                "color": "#0f3460",
+                                "opacity": 0.9
+                            },
+                            "stroke": {
+                                "color": "#e94560",
+                                "width": 4
+                            }
+                        },
+                        "start": 2.0,
+                        "length": 3.0,
+                        "offset": { "x": 200, "y": 100 },
+                        "scale": 1.0,
+                        "position": "center"
+                    },
+                    {
+                        "asset": {
+                            "type": "shape",
+                            "shape": "circle",
+                            "circle": {
+                                "radius": 120
+                            },
+                            "fill": {
+                                "color": "#16213e"
+                            },
+                            "stroke": {
+                                "color": "#e94560",
+                                "width": 6
+                            }
+                        },
+                        "start": 4.0,
+                        "length": 3.0,
+                        "offset": { "x": -150, "y": 0 },
+                        "scale": 1.0,
+                        "position": "center"
+                    },
+                    {
+                        "asset": {
+                            "type": "shape",
+                            "shape": "line",
+                            "line": {
+                                "length": 500,
+                                "thickness": 4
+                            },
+                            "fill": {
+                                "color": "#e94560"
+                            }
+                        },
+                        "start": 6.0,
+                        "length": 2.0,
+                        "offset": { "x": 0, "y": 0 },
+                        "scale": 1.0,
+                        "position": "center",
+                        "transition": {
+                            "in": "fade",
+                            "out": "fade",
+                            "duration": 0.5
+                        }
+                    },
+                    {
+                        "asset": {
+                            "type": "shape",
+                            "shape": "rectangle",
+                            "rectangle": {
+                                "width": 300,
+                                "height": 300
+                            },
+                            "fill": {
+                                "color": "#533483",
+                                "opacity": 1.0
+                            }
+                        },
+                        "start": 7.0,
+                        "length": 3.0,
+                        "offset": { "x": 0, "y": 0 },
+                        "scale": 1.0,
+                        "position": "center",
+                        "transform": {
+                            "keyframes": [
+                                { "time": 0.0, "rotate": 0, "scale": 0.5, "opacity": 0.0 },
+                                { "time": 1.0, "rotate": 45, "scale": 1.0, "opacity": 1.0 },
+                                { "time": 3.0, "rotate": 90, "scale": 0.5, "opacity": 0.0 }
+                            ]
+                        }
+                    }
+                ]
+            }
+        ]
+    }
+}
