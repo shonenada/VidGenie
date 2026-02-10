@@ -8,18 +8,67 @@ use gl::types::{GLint, GLsizei};
 use log::debug;
 
 use anyhow::bail;
-use vg_gl::{init_gl, FrameBuffer, Indices, RenderBuffer, Renderer, Texture, INDICES_PER_QUAD};
+use vg_gl::{init_gl, FrameBuffer, Indices, Quad, RenderBuffer, Renderer, Texture, INDICES_PER_QUAD};
 use vg_video::{
-    AssetType, CaptionOverlay, Frame, ImageClipTexture, RenderRequest, Transition, TransitionType,
-    VideoEncoder,
+    AssetType, CaptionOverlay, Frame, ImageClipTexture, Keyframe, RenderRequest,
+    ShapeClipTexture, Transition, TransitionType, VideoEncoder,
 };
 
 const ALIASING_SAMPLES: GLsizei = 4;
 const FPS: u32 = 30;
 const SINGLE_QUAD_INDICES: Indices = Indices([0, 1, 2, 2, 3, 0]);
 
+enum ClipTexture {
+    Image(ImageClipTexture),
+    Shape(ShapeClipTexture),
+}
+
+impl ClipTexture {
+    fn load(&mut self) -> anyhow::Result<()> {
+        match self {
+            ClipTexture::Image(t) => t.load(),
+            ClipTexture::Shape(t) => t.load(),
+        }
+    }
+
+    fn set_offset(&mut self, x: f32, y: f32) {
+        match self {
+            ClipTexture::Image(t) => t.set_offset(x, y),
+            ClipTexture::Shape(t) => t.set_offset(x, y),
+        }
+    }
+
+    fn set_keyframes(&mut self, keyframes: Vec<Keyframe>) {
+        match self {
+            ClipTexture::Image(t) => t.set_keyframes(keyframes),
+            ClipTexture::Shape(t) => t.set_keyframes(keyframes),
+        }
+    }
+
+    fn quad_at_time(&self, local_time: f32) -> Quad {
+        match self {
+            ClipTexture::Image(t) => t.quad_at_time(local_time),
+            ClipTexture::Shape(t) => t.quad_at_time(local_time),
+        }
+    }
+
+    fn opacity_at_time(&self, local_time: f32) -> f32 {
+        match self {
+            ClipTexture::Image(t) => t.opacity_at_time(local_time),
+            ClipTexture::Shape(t) => t.opacity_at_time(local_time),
+        }
+    }
+
+    fn texture(&self) -> Option<Texture> {
+        match self {
+            ClipTexture::Image(t) => t.texture(),
+            ClipTexture::Shape(t) => t.texture(),
+        }
+    }
+}
+
 struct ClipRender {
-    image_texture: ImageClipTexture,
+    clip_texture: ClipTexture,
     texture: Texture,
     start_seconds: f32,
     start_frame: u64,
@@ -131,11 +180,12 @@ fn main() -> anyhow::Result<()> {
     let mut texture_idx = 0u32;
     for track in &params.timeline.tracks {
         for clip in &track.clips {
-            if clip.asset.asset_type != AssetType::Image {
-                bail!("Only image assets are supported right now.");
+            let asset_type = clip.asset.asset_type();
+            if asset_type == AssetType::Video {
+                bail!("Video assets are not supported yet.");
             }
             if texture_idx >= 32 {
-                bail!("Max 32 image clips supported per render.");
+                bail!("Max 32 clips supported per render.");
             }
             let start_frame = seconds_to_frames(clip.start);
             let end_frame = start_frame + seconds_to_frames(clip.length);
@@ -143,26 +193,45 @@ fn main() -> anyhow::Result<()> {
                 max_end_frame = end_frame;
             }
 
-            let mut image_texture = ImageClipTexture::new(
-                &clip.asset.src,
-                width as f32,
-                height as f32,
-                texture_idx,
-                clip.scale,
-                clip.rotate,
-                &clip.position,
-            );
-            image_texture.set_offset(clip.offset.x, clip.offset.y);
+            let mut clip_texture = match asset_type {
+                AssetType::Image => {
+                    let src = clip.asset.src().expect("Image asset must have src");
+                    ClipTexture::Image(ImageClipTexture::new(
+                        src,
+                        width as f32,
+                        height as f32,
+                        texture_idx,
+                        clip.scale,
+                        clip.rotate,
+                        &clip.position,
+                    ))
+                }
+                AssetType::Shape => {
+                    let spec = clip.asset.shape_spec().expect("Shape asset must have spec");
+                    ClipTexture::Shape(ShapeClipTexture::new(
+                        spec.clone(),
+                        width as f32,
+                        height as f32,
+                        texture_idx,
+                        clip.scale,
+                        clip.rotate,
+                        &clip.position,
+                    ))
+                }
+                AssetType::Video => unreachable!(),
+            };
+
+            clip_texture.set_offset(clip.offset.x, clip.offset.y);
 
             let has_keyframes = if let Some(ref transform) = clip.transform {
                 let keyframes = transform.to_keyframes(clip.length, width as f32, height as f32);
-                image_texture.set_keyframes(keyframes);
+                clip_texture.set_keyframes(keyframes);
                 true
             } else {
                 false
             };
 
-            image_texture.load()?;
+            clip_texture.load()?;
 
             let caption_overlay = if let Some(ref caption_config) = clip.caption {
                 Some(CaptionOverlay::from_config(
@@ -175,9 +244,9 @@ fn main() -> anyhow::Result<()> {
                 None
             };
 
-            let inner_texture = image_texture.texture().unwrap();
+            let inner_texture = clip_texture.texture().unwrap();
             render_clips.push(ClipRender {
-                image_texture,
+                clip_texture,
                 texture: inner_texture,
                 start_seconds: clip.start,
                 start_frame,
@@ -194,7 +263,6 @@ fn main() -> anyhow::Result<()> {
     renderer.program.use_this();
     renderer.program.set_int_uniform("uTexture", 0)?;
 
-    // Multi sample for anti aliasing
     let color_texture = Texture::new_without_unit(gl::TEXTURE_2D_MULTISAMPLE);
     color_texture.multi_sample(ALIASING_SAMPLES, width as i32, height as i32);
     let renderbuffer = RenderBuffer::new();
@@ -275,10 +343,10 @@ fn main() -> anyhow::Result<()> {
                 }
 
                 let local_time = (i as f32 / FPS as f32) - clip.start_seconds;
-                let quad = clip.image_texture.quad_at_time(local_time);
+                let quad = clip.clip_texture.quad_at_time(local_time);
 
                 if clip.has_keyframes {
-                    let transform_opacity = clip.image_texture.opacity_at_time(local_time);
+                    let transform_opacity = clip.clip_texture.opacity_at_time(local_time);
                     alpha *= transform_opacity;
                 }
 
