@@ -15,9 +15,11 @@ pub struct Indices(pub [i32; INDICES_PER_QUAD]);
 
 const VERTEX_SRC: &str = include_str!("shader/vertex.glsl");
 const FRAGMENT_SRC: &str = include_str!("shader/fragment.glsl");
+const FRAGMENT_LUMA_SRC: &str = include_str!("shader/fragment_luma.glsl");
 
 pub struct Renderer {
     pub program: Program,
+    pub luma_program: Program,
     pub vertex_array: VertexArray,
 
     #[allow(dead_code)]
@@ -32,6 +34,10 @@ impl Renderer {
         let fragment_shader = Shader::new_fragment(FRAGMENT_SRC)?;
         let program = Program::new(&[vertex_shader, fragment_shader])?;
 
+        let luma_vertex_shader = Shader::new_vertex(VERTEX_SRC)?;
+        let luma_fragment_shader = Shader::new_fragment(FRAGMENT_LUMA_SRC)?;
+        let luma_program = Program::new(&[luma_vertex_shader, luma_fragment_shader])?;
+
         let vertex_array = VertexArray::new();
         vertex_array.bind();
 
@@ -40,6 +46,7 @@ impl Renderer {
 
         Ok(Self {
             program,
+            luma_program,
             vertex_array,
             index_buffer,
             vertex_buffer,

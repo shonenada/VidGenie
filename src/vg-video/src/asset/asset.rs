@@ -17,6 +17,9 @@ pub enum AssetType {
 
     #[serde(rename = "shape")]
     Shape,
+
+    #[serde(rename = "luma")]
+    Luma,
 }
 
 impl fmt::Display for AssetType {
@@ -25,6 +28,7 @@ impl fmt::Display for AssetType {
             AssetType::Image => "image",
             AssetType::Video => "video",
             AssetType::Shape => "shape",
+            AssetType::Luma => "luma",
         };
         write!(f, "{}", printable)
     }
@@ -43,6 +47,10 @@ pub enum Asset {
     },
     #[serde(rename = "shape")]
     Shape(ShapeAssetSpec),
+    #[serde(rename = "luma")]
+    Luma {
+        src: String,
+    },
 }
 
 impl Asset {
@@ -51,6 +59,7 @@ impl Asset {
             Asset::Image { .. } => AssetType::Image,
             Asset::Video { .. } => AssetType::Video,
             Asset::Shape(_) => AssetType::Shape,
+            Asset::Luma { .. } => AssetType::Luma,
         }
     }
 
@@ -58,6 +67,7 @@ impl Asset {
         match self {
             Asset::Image { src } => Some(src),
             Asset::Video { src } => Some(src),
+            Asset::Luma { src } => Some(src),
             Asset::Shape(_) => None,
         }
     }
@@ -101,6 +111,7 @@ impl Asset {
             Asset::Image { .. } => Box::new(self.into_image_asset().unwrap()),
             Asset::Video { .. } => Box::new(self.into_video_asset().unwrap()),
             Asset::Shape(_) => Box::new(self.into_shape_asset().unwrap()),
+            Asset::Luma { .. } => Box::new(self.into_image_asset().unwrap()),
         }
     }
 }

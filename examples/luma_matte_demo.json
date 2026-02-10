@@ -1,0 +1,51 @@
+{
+    "output": {
+        "format": "mp4",
+        "width": 1280,
+        "height": 720
+    },
+    "timeline": {
+        "background": "#1a1a2e",
+        "tracks": [
+            {
+                "clips": [
+                    {
+                        "asset": {
+                            "type": "luma",
+                            "src": "./resources/luma_circle.jpg"
+                        },
+                        "start": 0.0,
+                        "length": 3.0,
+                        "offset": {
+                            "x": 0,
+                            "y": 0
+                        },
+                        "scale": 1.0,
+                        "position": "center"
+                    },
+                    {
+                        "asset": {
+                            "type": "shape",
+                            "shape": "rectangle",
+                            "fill": {
+                                "color": "#e94560"
+                            },
+                            "rectangle": {
+                                "width": 1280,
+                                "height": 720
+                            }
+                        },
+                        "start": 0.0,
+                        "length": 3.0,
+                        "offset": {
+                            "x": 0,
+                            "y": 0
+                        },
+                        "scale": 1.0,
+                        "position": "center"
+                    }
+                ]
+            }
+        ]
+    }
+}

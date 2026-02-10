@@ -67,6 +67,13 @@ impl ClipTexture {
     }
 }
 
+struct LumaMatte {
+    clip_texture: ImageClipTexture,
+    texture: Texture,
+    start_frame: u64,
+    end_frame: u64,
+}
+
 struct ClipRender {
     clip_texture: ClipTexture,
     texture: Texture,
@@ -77,6 +84,7 @@ struct ClipRender {
     length_seconds: f32,
     has_keyframes: bool,
     caption_overlay: Option<CaptionOverlay>,
+    luma_matte: Option<LumaMatte>,
 }
 
 fn seconds_to_frames(seconds: f32) -> u64 {
@@ -179,6 +187,7 @@ fn main() -> anyhow::Result<()> {
     let mut max_end_frame = 0u64;
     let mut texture_idx = 0u32;
     for track in &params.timeline.tracks {
+        let mut pending_luma: Option<(ImageClipTexture, Texture, u64, u64)> = None;
         for clip in &track.clips {
             let asset_type = clip.asset.asset_type();
             if asset_type == AssetType::Video {
@@ -191,6 +200,25 @@ fn main() -> anyhow::Result<()> {
             let end_frame = start_frame + seconds_to_frames(clip.length);
             if end_frame > max_end_frame {
                 max_end_frame = end_frame;
+            }
+
+            if asset_type == AssetType::Luma {
+                let src = clip.asset.src().expect("Luma asset must have src");
+                let mut luma_clip_tex = ImageClipTexture::new(
+                    src,
+                    width as f32,
+                    height as f32,
+                    texture_idx,
+                    clip.scale,
+                    clip.rotate,
+                    &clip.position,
+                );
+                luma_clip_tex.set_offset(clip.offset.x, clip.offset.y);
+                luma_clip_tex.load()?;
+                let tex = luma_clip_tex.texture().unwrap();
+                pending_luma = Some((luma_clip_tex, tex, start_frame, end_frame));
+                texture_idx += 1;
+                continue;
             }
 
             let mut clip_texture = match asset_type {
@@ -218,7 +246,7 @@ fn main() -> anyhow::Result<()> {
                         &clip.position,
                     ))
                 }
-                AssetType::Video => unreachable!(),
+                AssetType::Video | AssetType::Luma => unreachable!(),
             };
 
             clip_texture.set_offset(clip.offset.x, clip.offset.y);
@@ -244,6 +272,13 @@ fn main() -> anyhow::Result<()> {
                 None
             };
 
+            let luma_matte = pending_luma.take().map(|(clip_tex, tex, sf, ef)| LumaMatte {
+                clip_texture: clip_tex,
+                texture: tex,
+                start_frame: sf,
+                end_frame: ef,
+            });
+
             let inner_texture = clip_texture.texture().unwrap();
             render_clips.push(ClipRender {
                 clip_texture,
@@ -255,6 +290,7 @@ fn main() -> anyhow::Result<()> {
                 length_seconds: clip.length,
                 has_keyframes,
                 caption_overlay,
+                luma_matte,
             });
             texture_idx += 1;
         }
@@ -262,6 +298,12 @@ fn main() -> anyhow::Result<()> {
     renderer.set_attrs()?;
     renderer.program.use_this();
     renderer.program.set_int_uniform("uTexture", 0)?;
+
+    renderer.luma_program.use_this();
+    renderer.luma_program.set_int_uniform("uTexture", 0)?;
+    renderer.luma_program.set_int_uniform("uLumaMask", 1)?;
+
+    renderer.program.use_this();
 
     let color_texture = Texture::new_without_unit(gl::TEXTURE_2D_MULTISAMPLE);
     color_texture.multi_sample(ALIASING_SAMPLES, width as i32, height as i32);
@@ -354,17 +396,40 @@ fn main() -> anyhow::Result<()> {
                     continue;
                 }
 
-                renderer.program.set_float_uniform("uAlpha", alpha)?;
-                gl::ActiveTexture(gl::TEXTURE0);
-                gl::BindTexture(gl::TEXTURE_2D, clip.texture.id);
-                renderer.set_vertex_buffer_data(&[quad])?;
-                renderer.set_index_buffer_data(&[SINGLE_QUAD_INDICES])?;
-                gl::DrawElements(
-                    gl::TRIANGLES,
-                    INDICES_PER_QUAD as GLsizei,
-                    gl::UNSIGNED_INT,
-                    ptr::null(),
-                );
+                let use_luma = clip.luma_matte.as_ref().map_or(false, |lm| {
+                    i >= lm.start_frame && i < lm.end_frame
+                });
+
+                if use_luma {
+                    let lm = clip.luma_matte.as_ref().unwrap();
+                    renderer.luma_program.use_this();
+                    renderer.luma_program.set_float_uniform("uAlpha", alpha)?;
+                    gl::ActiveTexture(gl::TEXTURE1);
+                    gl::BindTexture(gl::TEXTURE_2D, lm.texture.id);
+                    gl::ActiveTexture(gl::TEXTURE0);
+                    gl::BindTexture(gl::TEXTURE_2D, clip.texture.id);
+                    renderer.set_vertex_buffer_data(&[quad])?;
+                    renderer.set_index_buffer_data(&[SINGLE_QUAD_INDICES])?;
+                    gl::DrawElements(
+                        gl::TRIANGLES,
+                        INDICES_PER_QUAD as GLsizei,
+                        gl::UNSIGNED_INT,
+                        ptr::null(),
+                    );
+                    renderer.program.use_this();
+                } else {
+                    renderer.program.set_float_uniform("uAlpha", alpha)?;
+                    gl::ActiveTexture(gl::TEXTURE0);
+                    gl::BindTexture(gl::TEXTURE_2D, clip.texture.id);
+                    renderer.set_vertex_buffer_data(&[quad])?;
+                    renderer.set_index_buffer_data(&[SINGLE_QUAD_INDICES])?;
+                    gl::DrawElements(
+                        gl::TRIANGLES,
+                        INDICES_PER_QUAD as GLsizei,
+                        gl::UNSIGNED_INT,
+                        ptr::null(),
+                    );
+                }
 
                 if let Some(ref overlay) = clip.caption_overlay {
                     if let Some(page) = overlay.active_page_at(local_time) {
