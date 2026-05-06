@@ -43,8 +43,16 @@ jobs:
           fi
 
       - name: Install build dependencies
+        # libunwind-dev must be installed in its own apt invocation
+        # before libgstreamer1.0-dev. GitHub-hosted ubuntu-22.04 runners
+        # ship LLVM's libunwind-* packages preinstalled, which conflict
+        # with the Debian libunwind-dev that gstreamer transitively
+        # depends on. Pulling it in alone lets apt resolve the conflict
+        # by removing the LLVM variant; doing it inline with gstreamer
+        # makes the resolver give up with "held broken packages".
         run: |
           sudo apt-get update
+          sudo apt-get install -y --no-install-recommends libunwind-dev
           sudo apt-get install -y --no-install-recommends \
             pkg-config make cmake gcc g++ \
             libssl-dev \
