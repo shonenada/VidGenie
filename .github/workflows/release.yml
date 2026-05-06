@@ -73,7 +73,7 @@ jobs:
             ~/.cargo/registry
             ~/.cargo/git
             target
-          key: cargo-${{ matrix.target }}-${{ hashFiles('Cargo.lock') }}
+          key: cargo-${{ matrix.target }}-${{ hashFiles('**/Cargo.toml') }}
           restore-keys: cargo-${{ matrix.target }}-
 
       - name: Build vidgenie (release)
@@ -82,7 +82,10 @@ jobs:
           CARGO_PROFILE_RELEASE_CODEGEN_UNITS: "1"
           CARGO_PROFILE_RELEASE_DEBUG: "0"
           CARGO_PROFILE_RELEASE_STRIP: "symbols"
-        run: cargo build --release --locked --target ${{ matrix.target }} -p vg-cli
+        # --locked is intentionally omitted: Cargo.lock is not checked
+        # into this repo, so the workflow lets cargo resolve and write
+        # the lock file fresh on each run.
+        run: cargo build --release --target ${{ matrix.target }} -p vg-cli
 
       - name: Package artifact
         id: pkg
